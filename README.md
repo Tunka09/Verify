@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NeuroVerify - AI Identity Verification System
 
-## Getting Started
+**NeuroVerify** нь хиймэл оюун ухаанд суурилсан хүний царай таних, бичиг баримт баталгаажуулах болон амьд эсэхийг шалгах (liveness detection) цогц систем юм. Энэхүү төсөл нь орчин үеийн вэб технологи болон компьютерийн харааны (computer vision) дэвшилтэт аргуудыг хослуулан бүтээгдсэн.
 
-First, run the development server:
+## 🚀 Гол Боломжууд
+
+*   **Биометрийн Баталгаажуулалт (Face Match):** Хэрэглэгчийн селфи зургийг бичиг баримт дээрх зурагтай харьцуулж, ижил хүн мөн эсэхийг өндөр нарийвчлалтайгаар тогтооно. (60%-иас дээш бол амжилттай гэж үзнэ).
+*   **Амьд Эсэхийг Шалгах (Liveness Detection):** Зураг эсвэл бичлэг ашиглан хууран мэхлэхээс сэргийлж, хэрэглэгчийг бодит цагт үйлдэл хийлгэх (нүдээ цавчих, толгойгоо эргүүлэх гэх мэт) замаар шалгана.
+*   **Бичиг Баримт Таних (ID Extraction):** Иргэний үнэмлэх эсвэл паспортын зургийг уншиж, түүн дээрх мэдээллийг (нэр, регистр гэх мэт) автоматаар ялгаж авна.
+*   **Алдартнуудыг Таних (Celebrity Recognition):** Бүлэг зураг дээрх хүмүүсийг таньж, алдартнууд болон олны танил хүмүүсийг илрүүлэх боломжтой.
+*   **Монгол Хэлний Интерфэйс:** Хэрэглэгчийн бүх интерфэйс бүрэн Монгол хэл дээр хийгдсэн.
+
+## 🛠 Технологийн Стек
+
+### Frontend (Хэрэглэгчийн хэсэг)
+*   **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
+*   **Language:** TypeScript
+*   **Styling:** Tailwind CSS
+*   **Animations:** Framer Motion
+*   **Icons:** Lucide React
+*   **UI Components:** Custom components with Glassmorphism design
+
+### Backend (Сервер хэсэг)
+*   **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
+*   **Language:** Python 3.13+
+*   **AI/ML Libraries:**
+    *   `face_recognition` (dlib суурьтай)
+    *   `opencv-python-headless`
+    *   `numpy`
+    *   `Pillow`
+
+## 📦 Суулгах заавар
+
+Төслийг өөрийн компьютер дээр ажиллуулахын тулд дараах алхмуудыг дагана уу.
+
+### Шаардлагатай зүйлс
+*   Node.js (v18+)
+*   Python (v3.10+)
+*   CMake (dlib санг суулгахад шаардлагатай)
+
+### 1. Backend (Python) тохиргоо
+
+Backend код нь `scripts/backend` хавтсанд байрлана.
 
 ```bash
+# Backend хавтас руу шилжих
+cd scripts/backend
+
+# Виртуал орчин үүсгэх
+python3 -m venv venv
+
+# Виртуал орчинг идэвхжүүлэх
+# macOS/Linux:
+source venv/bin/activate
+# Windows:
+# .\venv\Scripts\activate
+
+# Шаардлагатай сангуудыг суулгах
+pip install -r requirements.txt
+
+# Серверийг асаах
+./start.sh
+# Эсвэл шууд: uvicorn app.main:app --reload --port 8000
+```
+Backend сервер `http://localhost:8000` дээр ажиллана.
+
+### 2. Frontend (Next.js) тохиргоо
+
+Төслийн үндсэн хавтас дээр ажиллана.
+
+```bash
+# Төслийн үндсэн хавтас руу буцах (хэрэв backend хавтас дотор байгаа бол)
+cd ../..
+
+# Сангуудыг суулгах
+npm install
+# эсвэл
+yarn install
+
+# Хөгжүүлэлтийн серверийг асаах
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Frontend вэб сайт `http://localhost:3000` дээр ажиллана.
+
+## 🖥 Ашиглах заавар
+
+1.  Backend болон Frontend серверүүдийг зэрэг асаана.
+2.  Вэб хөтөч дээрээ `http://localhost:3000` хаягаар орно.
+3.  **"Баталгаа эхлүүлэх"** товчийг дарж баталгаажуулалтын процессыг эхлүүлнэ.
+4.  **Алхам 1:** Бичиг баримтын зургаа оруулна (урд болон ар тал).
+5.  **Алхам 2:** Амьд эсэхийг шалгах даалгавруудыг биелүүлнэ.
+6.  **Алхам 3:** Селфи зураг авч, бичиг баримттайгаа тулгана.
+7.  Систем 60%-иас дээш таарсан тохиолдолд амжилттай гэж үзнэ.
+
+## 📂 Төслийн бүтэц
+
+```
+.
+├── app/                    # Next.js хуудас болон route-үүд
+│   ├── verify/             # Баталгаажуулалтын хуудас
+│   └── api/                # Next.js API routes (proxy)
+├── components/             # React бүрэлдэхүүн хэсгүүд
+│   ├── verification/       # Баталгаажуулалтын компонентууд
+│   ├── recognition/        # Танилтын компонентууд
+│   └── ui/                 # UI элементүүд (Button гэх мэт)
+├── lib/                    # Туслах функцууд болон API дуудлагууд
+├── public/                 # Зураг болон статик файлууд
+├── scripts/
+│   └── backend/            # Python FastAPI backend код
+│       ├── app/            # API логик
+│       └── requirements.txt
+└── types/                  # TypeScript төрлүүд
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🤝 Лиценз
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Энэхүү төсөл нь сургалтын зориулалттай.
