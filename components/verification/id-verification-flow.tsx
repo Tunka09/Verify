@@ -102,6 +102,7 @@ function UploadZone({
   isActive?: boolean
 }) {
   const [isDragging, setIsDragging] = useState(false)
+  const [isBlurred, setIsBlurred] = useState(true) // Default: blurred for privacy
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -170,18 +171,52 @@ function UploadZone({
                 <img
                   src={image}
                   alt={`ID ${side}`}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover transition-all duration-300 ${isBlurred ? 'blur-lg' : ''}`}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent" />
+                
+                {/* Privacy overlay with toggle */}
+                {isBlurred && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-foreground/10">
+                    <div className="text-center">
+                      <div className="w-10 h-10 mx-auto mb-2 bg-foreground/80 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <p className="text-xs font-bold text-foreground/80">Нууцлагдсан</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <motion.div 
-                className="flex items-center justify-center gap-2 mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <CheckCircle className="w-5 h-5 text-foreground" strokeWidth={2.5} />
-                <span className="font-bold text-foreground">Uploaded</span>
-              </motion.div>
+              
+              {/* Toggle blur button */}
+              <div className="flex items-center justify-between mt-4">
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <CheckCircle className="w-5 h-5 text-foreground" strokeWidth={2.5} />
+                  <span className="font-bold text-foreground">Uploaded</span>
+                </motion.div>
+                
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setIsBlurred(!isBlurred)
+                  }}
+                  className={`
+                    px-3 py-1 text-xs font-bold uppercase tracking-wider border-2 border-foreground
+                    transition-all duration-200
+                    ${isBlurred ? 'bg-muted hover:bg-foreground/10' : 'bg-[#ff6b6b] text-white hover:bg-[#ff5252]'}
+                  `}
+                >
+                  {isBlurred ? '👁 Харах' : '🔒 Нуух'}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="pt-8 text-center">
