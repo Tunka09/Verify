@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowRight, Scan, Shield, Zap, Sparkles } from 'lucide-react'
+import { ArrowRight, Scan, Sparkles, Book } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import type { Easing } from 'framer-motion'
@@ -94,14 +94,14 @@ function DecorativeShapes() {
 // Stats ticker component
 function StatsTicker() {
   const stats = [
-    'VERIFIED: 2,847,392',
-    'ACCURACY: 99.7%',
-    'PROCESSING: 47ms',
-    'ACTIVE: 12,847',
-    'VERIFIED: 2,847,392',
-    'ACCURACY: 99.7%',
-    'PROCESSING: 47ms',
-    'ACTIVE: 12,847',
+    'БАТАЛГААЖСАН: 2,847,392',
+    'НАРИЙВЧЛАЛ: 99.7%',
+    'ХУГАЦАА: 47мс',
+    'ИДЭВХТЭЙ: 12,847',
+    'БАТАЛГААЖСАН: 2,847,392',
+    'НАРИЙВЧЛАЛ: 99.7%',
+    'ХУГАЦАА: 47мс',
+    'ИДЭВХТЭЙ: 12,847',
   ]
 
   return (
@@ -142,24 +142,24 @@ export default function HeroSection() {
           {/* Top badge */}
           <motion.div variants={itemVariants} className="mb-8">
             <span className="inline-flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)]">
-              <Zap className="w-4 h-4" />
-              AI-Powered Identity Verification
+              <Sparkles className="w-4 h-4" />
+              AI-тэй Иргэний Үнэмлэх/Пасспорт Баталгаажуулалт
             </span>
           </motion.div>
 
           {/* Main headline - Asymmetric layout */}
           <motion.div variants={itemVariants} className="mb-8">
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tighter">
-              <span className="block">VERIFY</span>
+              <span className="block">НҮҮР</span>
               <span className="block text-[#3b82f6] relative inline-block">
-                IDENTITY
+                ТАНИХ
                 <motion.span 
                   className="absolute -right-4 -top-4 w-8 h-8 bg-[#06b6d4] rounded-full border-2 border-foreground hidden sm:block"
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
               </span>
-              <span className="block text-[#06b6d4]">INSTANTLY</span>
+              <span className="block text-[#06b6d4]">СИСТЕМ</span>
             </h1>
           </motion.div>
 
@@ -168,9 +168,8 @@ export default function HeroSection() {
             variants={itemVariants}
             className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed"
           >
-            Upload your ID, detect liveness, and get{' '}
-            <span className="bg-[#3b82f6] px-1 text-white font-semibold">verified in seconds</span>{' '}
-            with our cutting-edge neural verification system.
+            Иргэний үнэмлэхээ оруулж, амьд эсэхийг шалгаад,{' '}
+            <span className="bg-[#3b82f6] px-1 text-white font-semibold">хэдхэн секундэд баталгаажуул</span>{' '}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -184,18 +183,20 @@ export default function HeroSection() {
                 className="neo-btn bg-[#3b82f6] text-white hover:bg-[#2563eb] px-8 py-6 text-base gap-3"
               >
                 <Scan className="w-5 h-5" />
-                START VERIFICATION
+                БАТАЛГААЖУУЛАХ
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="neo-btn bg-background hover:bg-muted px-8 py-6 text-base"
-            >
-              <Shield className="w-5 h-5 mr-2" />
-              HOW IT WORKS
-            </Button>
+            <Link href="/documentation">
+              <Button
+                size="lg"
+                variant="outline"
+                className="neo-btn bg-background hover:bg-muted px-8 py-6 text-base"
+              >
+                <Book className="w-5 h-5 mr-2" />
+                БАРИМТ БИЧИГ
+              </Button>
+            </Link>
           </motion.div>
 
           {/* Feature pills */}
@@ -204,10 +205,10 @@ export default function HeroSection() {
             className="flex flex-wrap gap-3"
           >
             {[
-              { label: 'Face Detection', color: 'bg-[#3b82f6]', textColor: 'text-white' },
-              { label: 'Document OCR', color: 'bg-[#06b6d4]', textColor: 'text-foreground' },
-              { label: 'Liveness Check', color: 'bg-[#0ea5e9]', textColor: 'text-white' },
-              { label: 'Anti-Spoofing', color: 'bg-[#8b5cf6]', textColor: 'text-white' },
+              { label: 'Нүүр илрүүлэлт', color: 'bg-[#3b82f6]', textColor: 'text-white' },
+              { label: 'Баримт OCR', color: 'bg-[#06b6d4]', textColor: 'text-foreground' },
+              { label: 'Амьд эсэх шалгалт', color: 'bg-[#0ea5e9]', textColor: 'text-white' },
+              { label: 'Хуурамч илрүүлэлт', color: 'bg-[#8b5cf6]', textColor: 'text-white' },
             ].map((feature, i) => (
               <motion.span
                 key={feature.label}
