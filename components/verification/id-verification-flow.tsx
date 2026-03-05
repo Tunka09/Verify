@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Upload, FileText, Loader2, CheckCircle } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Upload, FileText, Loader2, CheckCircle, Camera, ArrowRight, X, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { extractDocument } from '@/lib/verification-service'
+import type { Easing } from 'framer-motion'
 
 interface IDVerificationFlowProps {
   onComplete: (data: ExtractedDocumentData) => void
@@ -21,7 +22,265 @@ interface ExtractedDocumentData {
   documentType?: string
   authenticity?: number
   confidence?: number
-  backData?: any
+  backData?: Record<string, unknown>
+}
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.46, 0.45, 0.94] as Easing
+    },
+  },
+}
+
+// Step indicator component
+function StepIndicator({ currentStep }: { currentStep: number }) {
+  const steps = [
+    { label: 'Upload', icon: Upload },
+    { label: 'Scan', icon: Camera },
+    { label: 'Verify', icon: CheckCircle },
+  ]
+
+  return (
+    <div className="flex items-center justify-center gap-2 mb-8">
+      {steps.map((step, i) => {
+        const Icon = step.icon
+        const isActive = i === currentStep
+        const isCompleted = i < currentStep
+        
+        return (
+          <div key={step.label} className="flex items-center gap-2">
+            <motion.div
+              className={`
+                w-10 h-10 flex items-center justify-center border-3 border-foreground
+                ${isActive ? 'bg-[#c6f135]' : isCompleted ? 'bg-[#4ecdc4]' : 'bg-muted'}
+                ${isActive ? 'shadow-[3px_3px_0px_var(--foreground)]' : ''}
+              `}
+              animate={isActive ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ duration: 1, repeat: isActive ? Infinity : 0 }}
+            >
+              <Icon className="w-5 h-5" strokeWidth={2.5} />
+            </motion.div>
+            <span className={`text-sm font-bold uppercase tracking-wider hidden sm:block ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {step.label}
+            </span>
+            {i < steps.length - 1 && (
+              <div className={`w-8 h-1 mx-2 ${i < currentStep ? 'bg-[#4ecdc4]' : 'bg-muted'} border border-foreground`} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Upload zone component
+function UploadZone({ 
+  side, 
+  image, 
+  onUpload,
+  isActive = false
+}: { 
+  side: 'front' | 'back'
+  image: string | null
+  onUpload: (file: File) => void
+  isActive?: boolean
+}) {
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      onUpload(file)
+    }
+  }, [onUpload])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  const colors = {
+    front: { bg: 'bg-[#c6f135]', label: 'Front Side' },
+    back: { bg: 'bg-[#4ecdc4]', label: 'Back Side' },
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: side === 'front' ? 0.1 : 0.2 }}
+    >
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onUpload(file)
+        }}
+        className="hidden"
+        id={`${side}-upload`}
+      />
+      <label htmlFor={`${side}-upload`}>
+        <motion.div
+          className={`
+            cursor-pointer p-6 md:p-8 border-4 border-foreground
+            transition-all duration-200 relative overflow-hidden
+            ${isDragging ? 'bg-[#c6f135] border-solid' : image ? colors[side].bg : 'bg-muted border-dashed'}
+            ${!image ? 'hover:bg-[#c6f135]/50' : ''}
+          `}
+          style={{
+            boxShadow: image || isDragging ? '6px 6px 0px var(--foreground)' : '4px 4px 0px var(--foreground)',
+          }}
+          whileHover={!image ? { y: -4, boxShadow: '8px 8px 0px var(--foreground)' } : {}}
+          whileTap={{ scale: 0.98 }}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+        >
+          {/* Label badge */}
+          <div className={`absolute top-0 left-0 ${colors[side].bg} px-3 py-1 border-r-3 border-b-3 border-foreground`}>
+            <span className="text-xs font-black uppercase tracking-wider">{colors[side].label}</span>
+          </div>
+
+          {image ? (
+            <div className="pt-6">
+              <div className="relative w-full h-40 md:h-48 border-3 border-foreground overflow-hidden bg-white">
+                <img
+                  src={image}
+                  alt={`ID ${side}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent" />
+              </div>
+              <motion.div 
+                className="flex items-center justify-center gap-2 mt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <CheckCircle className="w-5 h-5 text-foreground" strokeWidth={2.5} />
+                <span className="font-bold text-foreground">Uploaded</span>
+              </motion.div>
+            </div>
+          ) : (
+            <div className="pt-8 text-center">
+              <motion.div
+                className="w-16 h-16 mx-auto mb-4 bg-foreground/10 border-3 border-foreground flex items-center justify-center"
+                animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <Upload className="w-8 h-8" strokeWidth={2} />
+              </motion.div>
+              <p className="font-black text-lg mb-2 uppercase">
+                {isDragging ? 'Drop it!' : 'Upload Image'}
+              </p>
+              <p className="text-sm text-muted-foreground font-medium">
+                Drag & drop or click to browse
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                PNG, JPG up to 10MB
+              </p>
+            </div>
+          )}
+        </motion.div>
+      </label>
+    </motion.div>
+  )
+}
+
+// Extracted data display
+function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; onContinue: () => void }) {
+  const fields = [
+    { label: 'Full Name', value: data.name },
+    { label: 'Date of Birth', value: data.dateOfBirth },
+    { label: 'Document Number', value: data.documentNumber },
+    { label: 'Expiry Date', value: data.expiry },
+    { label: 'Issued Country', value: data.issuedCountry },
+    { label: 'Confidence Score', value: data.confidence ? `${data.confidence.toFixed(1)}%` : undefined },
+  ].filter(f => f.value)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 200 }}
+      className="bg-card p-6 md:p-8 border-3 border-foreground shadow-[6px_6px_0px_var(--foreground)]"
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-12 h-12 bg-[#c6f135] border-3 border-foreground flex items-center justify-center">
+          <CheckCircle className="w-6 h-6" strokeWidth={2.5} />
+        </div>
+        <div>
+          <h3 className="text-xl font-black uppercase tracking-tight">Document Scanned</h3>
+          <p className="text-sm text-muted-foreground font-medium">Information extracted successfully</p>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
+        {fields.map((field, i) => (
+          <motion.div
+            key={field.label}
+            className="bg-muted p-4 border-2 border-foreground"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              {field.label}
+            </p>
+            <p className="font-bold text-lg">{field.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Confidence bar */}
+      {data.confidence && (
+        <div className="mb-6">
+          <div className="flex justify-between mb-2">
+            <span className="text-sm font-bold uppercase tracking-wider">Document Authenticity</span>
+            <span className="font-mono font-bold">{data.confidence.toFixed(1)}%</span>
+          </div>
+          <div className="h-4 bg-muted border-2 border-foreground overflow-hidden">
+            <motion.div
+              className="h-full bg-[#c6f135]"
+              initial={{ width: 0 }}
+              animate={{ width: `${data.confidence}%` }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+      )}
+
+      <Button
+        onClick={onContinue}
+        className="w-full bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 text-lg transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
+      >
+        Continue to Liveness Check
+        <ArrowRight className="w-5 h-5 ml-2" />
+      </Button>
+    </motion.div>
+  )
 }
 
 export default function IDVerificationFlow({
@@ -31,8 +290,10 @@ export default function IDVerificationFlow({
   const [frontImage, setFrontImage] = useState<string | null>(null)
   const [backImage, setBackImage] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
-  const [extractedData, setExtractedData] = useState<any>(null)
+  const [extractedData, setExtractedData] = useState<ExtractedDocumentData | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const currentStep = extractedData ? 2 : frontImage ? 1 : 0
 
   const handleImageUpload = (side: 'front' | 'back', file: File) => {
     const reader = new FileReader()
@@ -45,13 +306,14 @@ export default function IDVerificationFlow({
         setBackImage(result)
         onUpload(undefined, result)
       }
+      setError(null)
     }
     reader.readAsDataURL(file)
   }
 
   const handleExtract = async () => {
     if (!frontImage) {
-      setError('Мэдээллийг уншихын тулд урд талын зураг шаардлагатай')
+      setError('Please upload the front side of your ID')
       return
     }
 
@@ -59,7 +321,6 @@ export default function IDVerificationFlow({
     setScanning(true)
     try {
       const frontResult = await extractDocument(frontImage, 'front')
-      // Backend: { success, data: { name, idNumber, confidence, ... } }
       const parsedFront = frontResult.data || frontResult
 
       let backResult = null
@@ -78,255 +339,142 @@ export default function IDVerificationFlow({
       }
 
       setExtractedData(combined)
-      onComplete(combined)
     } catch (err) {
       console.error('Extraction failed', err)
-      setError('Бичиг баримтын мэдээллийг уншиж чадсангүй. Дахин оролдоно уу.')
+      setError('Failed to extract document data. Please try again.')
     } finally {
       setScanning(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background px-4 py-8 md:py-12">
+      {/* Background pattern */}
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
+
       <motion.div
-        className="max-w-2xl w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        className="max-w-3xl mx-auto relative z-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
       >
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-black mb-4 bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-            Иргэний үнэмлэхээ баталгаажуулах
+        <motion.div variants={itemVariants} className="text-center mb-8">
+          <motion.span 
+            className="inline-flex items-center gap-2 bg-[#4ecdc4] text-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] mb-6"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200 }}
+          >
+            <FileText className="w-4 h-4" />
+            Step 1 of 3
+          </motion.span>
+
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter mb-4">
+            UPLOAD YOUR <span className="text-[#c6f135]">ID</span>
           </h1>
-          <p className="text-muted-foreground text-lg">
-            Бичиг баримтынхаа урд болон ар талын зургийг оруулна уу
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+            Upload clear photos of your identity document for verification
           </p>
-        </div>
+        </motion.div>
 
-        {/* Upload Area */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          {/* Front Side */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleImageUpload('front', file)
-                }}
-                className="hidden"
-                id="front-upload"
-              />
-              <label htmlFor="front-upload">
-                <div
-                  className={`cursor-pointer glassmorphism-dark p-12 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/60 transition-all duration-300 text-center group ${
-                    frontImage ? 'border-accent' : ''
-                  }`}
-                >
-                  {frontImage ? (
-                    <div className="space-y-4">
-                      <div className="relative w-full h-40 rounded-lg overflow-hidden border border-accent/30">
-                        <img
-                          src={frontImage || "/placeholder.svg"}
-                          alt="ID Front"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent pointer-events-none"></div>
-                      </div>
-                      <p className="text-sm text-accent font-semibold">
-                        Урд тал орсон
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <Upload className="w-8 h-8 mx-auto text-primary group-hover:text-accent transition-colors" />
-                      <p className="font-semibold text-foreground">
-                        Урд тал оруулах
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        PNG эсвэл JPG, дээд тал нь 10MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </label>
-            </div>
-          </motion.div>
+        {/* Step indicator */}
+        <StepIndicator currentStep={currentStep} />
 
-          {/* Back Side */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleImageUpload('back', file)
-                }}
-                className="hidden"
-                id="back-upload"
-              />
-              <label htmlFor="back-upload">
-                <div
-                  className={`cursor-pointer glassmorphism-dark p-12 rounded-xl border-2 border-dashed border-primary/30 hover:border-primary/60 transition-all duration-300 text-center group ${
-                    backImage ? 'border-accent' : ''
-                  }`}
-                >
-                  {backImage ? (
-                    <div className="space-y-4">
-                      <div className="relative w-full h-40 rounded-lg overflow-hidden border border-accent/30">
-                        <img
-                          src={backImage || "/placeholder.svg"}
-                          alt="ID Back"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent pointer-events-none"></div>
-                      </div>
-                      <p className="text-sm text-accent font-semibold">
-                        Back uploaded
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <Upload className="w-8 h-8 mx-auto text-primary group-hover:text-accent transition-colors" />
-                      <p className="font-semibold text-foreground">
-                        Ар тал оруулах
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        PNG эсвэл JPG, дээд тал нь 10MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </label>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Extract Data */}
-        {frontImage && !extractedData && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
-          >
-            <Button
-              onClick={handleExtract}
-              disabled={scanning}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-foreground rounded-lg font-semibold py-6 text-lg"
+        {/* Upload or Results */}
+        <AnimatePresence mode="wait">
+          {!extractedData ? (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -20 }}
             >
-              {scanning ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Уншиж байна...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-5 h-5 mr-2" />
-                  Бичиг баримтын мэдээллийг унших
-                </>
+              {/* Upload zones */}
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <UploadZone
+                  side="front"
+                  image={frontImage}
+                  onUpload={(file) => handleImageUpload('front', file)}
+                  isActive={!frontImage}
+                />
+                <UploadZone
+                  side="back"
+                  image={backImage}
+                  onUpload={(file) => handleImageUpload('back', file)}
+                />
+              </div>
+
+              {/* Error message */}
+              {error && (
+                <motion.div
+                  className="flex items-center gap-3 bg-[#ff6b6b] text-white p-4 border-3 border-foreground mb-6"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-bold">{error}</span>
+                  <button onClick={() => setError(null)} className="ml-auto">
+                    <X className="w-5 h-5" />
+                  </button>
+                </motion.div>
               )}
-            </Button>
-          </motion.div>
-        )}
 
-        {error && (
-          <p className="text-destructive text-sm mb-4 text-center">
-            {error}
-          </p>
-        )}
+              {/* Scan button */}
+              {frontImage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Button
+                    onClick={handleExtract}
+                    disabled={scanning}
+                    className="w-full bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 text-lg transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {scanning ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Scanning Document...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5 mr-2" />
+                        Scan Document
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+            </motion.div>
+          ) : (
+            <ExtractedDataCard
+              key="results"
+              data={extractedData}
+              onContinue={() => onComplete(extractedData)}
+            />
+          )}
+        </AnimatePresence>
 
-        {/* Extracted Data Display */}
-        {extractedData && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12 glassmorphism-dark p-8 rounded-xl border border-primary/30 space-y-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <CheckCircle className="w-6 h-6 text-accent" />
-              <h3 className="text-xl font-bold text-accent">
-                Бичиг баримт амжилттай уншигдлаа
-              </h3>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Овог нэр</p>
-                <p className="font-semibold text-foreground">
-                  {extractedData.name}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Төрсөн огноо
-                </p>
-                <p className="font-semibold text-foreground">
-                  {extractedData.dateOfBirth}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Бичиг баримтын дугаар
-                </p>
-                <p className="font-semibold text-foreground">
-                  {extractedData.documentNumber}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Дуусах хугацаа</p>
-                <p className="font-semibold text-foreground">
-                  {extractedData.expiry}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Олгосон улс
-                </p>
-                <p className="font-semibold text-foreground">
-                  {extractedData.issuedCountry}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Баталгаажуулалтын оноо
-                </p>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-accent">
-                    {extractedData.authenticity}%
-                  </p>
-                  <div className="w-24 h-2 bg-primary/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary to-accent"
-                      style={{
-                        width: `${extractedData.authenticity}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => extractedData && onComplete(extractedData)}
-              disabled={!extractedData}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-foreground rounded-lg font-semibold py-6 disabled:opacity-70"
+        {/* Tips section */}
+        <motion.div
+          variants={itemVariants}
+          className="mt-12 grid md:grid-cols-3 gap-4"
+        >
+          {[
+            { title: 'Good Lighting', desc: 'Ensure clear, even lighting' },
+            { title: 'Flat Surface', desc: 'Place ID on a flat background' },
+            { title: 'Full Frame', desc: 'Capture all corners of the ID' },
+          ].map((tip, i) => (
+            <div 
+              key={tip.title}
+              className="bg-muted p-4 border-2 border-foreground text-center"
             >
-              Амьд эсэхийг шалгах руу шилжих
-            </Button>
-          </motion.div>
-        )}
+              <p className="font-bold text-sm uppercase tracking-wider mb-1">{tip.title}</p>
+              <p className="text-xs text-muted-foreground">{tip.desc}</p>
+            </div>
+          ))}
+        </motion.div>
       </motion.div>
     </div>
   )

@@ -1,117 +1,231 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronDown, Zap } from 'lucide-react'
+import { ArrowRight, Scan, Shield, Zap, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import type { Easing } from 'framer-motion'
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.3,
+      staggerChildren: 0.15,
+      delayChildren: 0.2,
     },
   },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 30 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: 'easeOut' },
+    transition: { 
+      duration: 0.6, 
+      ease: [0.25, 0.46, 0.45, 0.94] as Easing
+    },
   },
+}
+
+const floatVariants = {
+  initial: { y: 0, rotate: 0 },
+  animate: {
+    y: [-8, 8, -8],
+    rotate: [-2, 2, -2],
+    transition: {
+      duration: 4,
+      repeat: Infinity,
+      ease: 'easeInOut' as const,
+    },
+  },
+}
+
+// Decorative shapes component
+function DecorativeShapes() {
+  return (
+    <>
+      {/* Top left shape */}
+      <motion.div
+        className="absolute top-20 left-10 w-16 h-16 bg-[#3b82f6] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] hidden md:block"
+        initial={{ scale: 0, rotate: -45 }}
+        animate={{ scale: 1, rotate: 12 }}
+        transition={{ delay: 0.5, type: 'spring', stiffness: 100 }}
+      />
+      
+      {/* Top right circle */}
+      <motion.div
+        className="absolute top-32 right-20 w-20 h-20 bg-[#06b6d4] rounded-full border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] hidden md:block"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.7, type: 'spring', stiffness: 100 }}
+      />
+      
+      {/* Bottom left circle */}
+      <motion.div
+        className="absolute bottom-40 left-20 w-12 h-12 bg-[#8b5cf6] rounded-full border-3 border-foreground shadow-[3px_3px_0px_var(--foreground)] hidden md:block"
+        variants={floatVariants}
+        initial="initial"
+        animate="animate"
+      />
+      
+      {/* Bottom right square */}
+      <motion.div
+        className="absolute bottom-32 right-32 w-14 h-14 bg-[#0ea5e9] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] rotate-45 hidden md:block"
+        initial={{ scale: 0, rotate: 0 }}
+        animate={{ scale: 1, rotate: 45 }}
+        transition={{ delay: 0.9, type: 'spring', stiffness: 100 }}
+      />
+
+      {/* Floating sparkle */}
+      <motion.div
+        className="absolute top-1/3 right-1/4 hidden lg:block"
+        variants={floatVariants}
+        initial="initial"
+        animate="animate"
+      >
+        <Sparkles className="w-8 h-8 text-[#3b82f6]" strokeWidth={2.5} />
+      </motion.div>
+    </>
+  )
+}
+
+// Stats ticker component
+function StatsTicker() {
+  const stats = [
+    'VERIFIED: 2,847,392',
+    'ACCURACY: 99.7%',
+    'PROCESSING: 47ms',
+    'ACTIVE: 12,847',
+    'VERIFIED: 2,847,392',
+    'ACCURACY: 99.7%',
+    'PROCESSING: 47ms',
+    'ACTIVE: 12,847',
+  ]
+
+  return (
+    <div className="w-full overflow-hidden bg-foreground py-3 border-y-4 border-foreground">
+      <motion.div
+        className="flex gap-12 whitespace-nowrap"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+      >
+        {stats.map((stat, i) => (
+          <span key={i} className="text-background font-bold text-sm tracking-wider flex items-center gap-3">
+            <span className="w-2 h-2 bg-[#3b82f6] rounded-full" />
+            {stat}
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  )
 }
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
-      <motion.div
-        className="text-center max-w-4xl mx-auto"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Logo/Brand */}
+    <section className="relative min-h-[100dvh] flex flex-col overflow-hidden bg-background">
+      {/* Grid pattern background */}
+      <div className="absolute inset-0 grid-pattern pointer-events-none" />
+      
+      {/* Decorative shapes */}
+      <DecorativeShapes />
+
+      {/* Main content */}
+      <div className="flex-1 flex items-center px-4 sm:px-6 lg:px-8 py-20">
         <motion.div
-          variants={itemVariants}
-          className="mb-8 flex items-center justify-center gap-3"
+          className="max-w-7xl mx-auto w-full"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
         >
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary blur-xl opacity-75 animate-pulse"></div>
-            <div className="relative bg-background p-3 rounded-lg border border-primary/30">
-              <Zap className="w-8 h-8 text-primary" />
-            </div>
-          </div>
-        </motion.div>
+          {/* Top badge */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <span className="inline-flex items-center gap-2 bg-[#3b82f6] text-white px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)]">
+              <Zap className="w-4 h-4" />
+              AI-Powered Identity Verification
+            </span>
+          </motion.div>
 
-        {/* Main Headline */}
-        <motion.h1
-          variants={itemVariants}
-          className="text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-tight"
-        >
-          <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-            Ирээдүйн танилт ба баталгаажуулалт
-          </span>
-          <br />
-          <span className="text-2xl sm:text-3xl md:text-4xl text-muted-foreground">
- эндээс эхэлнэ
-          </span>
-        </motion.h1>
+          {/* Main headline - Asymmetric layout */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tighter">
+              <span className="block">VERIFY</span>
+              <span className="block text-[#3b82f6] relative inline-block">
+                IDENTITY
+                <motion.span 
+                  className="absolute -right-4 -top-4 w-8 h-8 bg-[#06b6d4] rounded-full border-2 border-foreground hidden sm:block"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </span>
+              <span className="block text-[#06b6d4]">INSTANTLY</span>
+            </h1>
+          </motion.div>
 
-        {/* Subheading */}
-        <motion.p
-          variants={itemVariants}
-          className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
-        >
-          Цэргийн түвшний AI дүүрний танихал, амьдралын илрүүлэлт, одноос танихчадвар 2035 оны эрин үеийн мэдрэлийн сүлжээнээр эрхэлүүлэв.
-        </motion.p>
+          {/* Description with marker highlight */}
+          <motion.p
+            variants={itemVariants}
+            className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed"
+          >
+            Upload your ID, detect liveness, and get{' '}
+            <span className="bg-[#3b82f6] px-1 text-white font-semibold">verified in seconds</span>{' '}
+            with our cutting-edge neural verification system.
+          </motion.p>
 
-        {/* CTA Buttons */}
-        <motion.div
-          variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
-        >
-          <Link href="/verify">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-foreground border-primary/30 rounded-lg text-base font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
-            >
-              Туршиж үзэх 
-            </Button>
-          </Link>
-          {/* <Link href="#features">
+          {/* CTA Buttons */}
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row gap-4 mb-16"
+          >
+            <Link href="/verify">
+              <Button
+                size="lg"
+                className="neo-btn bg-[#3b82f6] text-white hover:bg-[#2563eb] px-8 py-6 text-base gap-3"
+              >
+                <Scan className="w-5 h-5" />
+                START VERIFICATION
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
             <Button
               size="lg"
               variant="outline"
-              className="border-primary/30 hover:bg-primary/10 text-primary rounded-lg font-semibold"
+              className="neo-btn bg-background hover:bg-muted px-8 py-6 text-base"
             >
-              Боломжуудыг үзэх
+              <Shield className="w-5 h-5 mr-2" />
+              HOW IT WORKS
             </Button>
-          </Link> */}
-        </motion.div>
+          </motion.div>
 
-        {/* Floating Badge */}
-        <motion.div
-          variants={itemVariants}
-          className="inline-block glassmorphism-dark px-6 py-3 rounded-full border border-primary/30 mb-16"
-        >
-          <span className="text-sm text-accent">
-            ✨ Дэлхийн аж ахуйн платформуудаас итгэрүүлсэн
-          </span>
+          {/* Feature pills */}
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-wrap gap-3"
+          >
+            {[
+              { label: 'Face Detection', color: 'bg-[#3b82f6]', textColor: 'text-white' },
+              { label: 'Document OCR', color: 'bg-[#06b6d4]', textColor: 'text-foreground' },
+              { label: 'Liveness Check', color: 'bg-[#0ea5e9]', textColor: 'text-white' },
+              { label: 'Anti-Spoofing', color: 'bg-[#8b5cf6]', textColor: 'text-white' },
+            ].map((feature, i) => (
+              <motion.span
+                key={feature.label}
+                className={`${feature.color} ${feature.textColor} px-4 py-2 font-bold text-sm border-2 border-foreground shadow-[3px_3px_0px_var(--foreground)]`}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8 + i * 0.1, type: 'spring', stiffness: 200 }}
+                whileHover={{ y: -3, boxShadow: '5px 5px 0px var(--foreground)' }}
+              >
+                {feature.label}
+              </motion.span>
+            ))}
+          </motion.div>
         </motion.div>
+      </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="flex justify-center"
-        >
-          <ChevronDown className="w-6 h-6 text-primary/50" />
-        </motion.div>
-      </motion.div>
+      {/* Stats ticker at bottom */}
+      <StatsTicker />
     </section>
   )
 }

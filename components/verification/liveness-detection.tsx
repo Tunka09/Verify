@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { CheckCircle, Circle, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { CheckCircle, Circle, Loader2, Eye, Smile, RotateCcw, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { checkLiveness } from '@/lib/verification-service'
+import type { Easing } from 'framer-motion'
 
 interface LivenessDetectionProps {
   onComplete: (result: LivenessResult) => void
@@ -16,29 +17,156 @@ interface LivenessResult {
   challenges?: Record<string, boolean>
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.46, 0.45, 0.94] as Easing
+    },
+  },
+}
+
+const challenges = [
+  {
+    instruction: 'Blink your eyes slowly',
+    icon: Eye,
+    color: 'bg-[#c6f135]',
+  },
+  {
+    instruction: 'Turn your head right',
+    icon: RotateCcw,
+    color: 'bg-[#4ecdc4]',
+  },
+  {
+    instruction: 'Smile naturally',
+    icon: Smile,
+    color: 'bg-[#ff6b9d]',
+  },
+]
+
+// Progress indicator
+function ChallengeProgress({ 
+  current, 
+  total, 
+  completed 
+}: { 
+  current: number
+  total: number
+  completed: number 
+}) {
+  return (
+    <div className="flex items-center justify-center gap-4 mb-8">
+      {Array.from({ length: total }).map((_, i) => {
+        const isActive = i === current
+        const isDone = i < completed
+        
+        return (
+          <motion.div
+            key={i}
+            className={`
+              w-12 h-12 flex items-center justify-center border-3 border-foreground
+              ${isDone ? 'bg-[#c6f135]' : isActive ? 'bg-[#ffd93d]' : 'bg-muted'}
+              ${isActive ? 'shadow-[4px_4px_0px_var(--foreground)]' : 'shadow-[2px_2px_0px_var(--foreground)]'}
+            `}
+            animate={isActive ? { scale: [1, 1.05, 1] } : {}}
+            transition={{ duration: 1, repeat: isActive ? Infinity : 0 }}
+          >
+            {isDone ? (
+              <CheckCircle className="w-6 h-6" strokeWidth={2.5} />
+            ) : (
+              <span className="font-black text-lg">{i + 1}</span>
+            )}
+          </motion.div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Camera placeholder with face mesh
+function CameraView({ isProcessing }: { isProcessing: boolean }) {
+  return (
+    <motion.div
+      className="relative w-full aspect-square max-w-sm mx-auto border-4 border-foreground bg-muted overflow-hidden"
+      style={{ boxShadow: '8px 8px 0px var(--foreground)' }}
+    >
+      {/* Face mesh visualization */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg className="w-48 h-48" viewBox="0 0 100 100">
+          <motion.circle
+            cx="50"
+            cy="50"
+            r="45"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-foreground/30"
+            animate={{ scale: [1, 1.02, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          {/* Eyes */}
+          <circle cx="35" cy="40" r="4" className="fill-foreground/50" />
+          <circle cx="65" cy="40" r="4" className="fill-foreground/50" />
+          {/* Nose */}
+          <line x1="50" y1="45" x2="50" y2="55" stroke="currentColor" strokeWidth="2" className="text-foreground/30" />
+          {/* Mouth */}
+          <motion.path 
+            d="M 40 65 Q 50 72 60 65" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            className="text-foreground/50"
+            animate={{ d: ['M 40 65 Q 50 72 60 65', 'M 40 65 Q 50 68 60 65', 'M 40 65 Q 50 72 60 65'] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </svg>
+      </div>
+
+      {/* Corner brackets */}
+      <div className="absolute top-4 left-4 w-8 h-8 border-l-4 border-t-4 border-foreground" />
+      <div className="absolute top-4 right-4 w-8 h-8 border-r-4 border-t-4 border-foreground" />
+      <div className="absolute bottom-4 left-4 w-8 h-8 border-l-4 border-b-4 border-foreground" />
+      <div className="absolute bottom-4 right-4 w-8 h-8 border-r-4 border-b-4 border-foreground" />
+
+      {/* Scanning animation */}
+      {isProcessing && (
+        <motion.div
+          className="absolute inset-x-0 h-1 bg-[#c6f135]"
+          animate={{ top: ['0%', '100%', '0%'] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+        />
+      )}
+
+      {/* Processing overlay */}
+      {isProcessing && (
+        <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+          <div className="bg-[#ffd93d] p-4 border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)]">
+            <Loader2 className="w-8 h-8 animate-spin" />
+          </div>
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 export default function LivenessDetection({ onComplete }: LivenessDetectionProps) {
   const [currentChallenge, setCurrentChallenge] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const [completedChallenges, setCompletedChallenges] = useState(0)
   const [error, setError] = useState<string | null>(null)
-
-  const challenges = [
-    {
-      instruction: 'Нүдээ удаанаар цавчих',
-      emoji: '👁️',
-      duration: 3,
-    },
-    {
-      instruction: 'Толгойгоо баруун тийш эргүүлэх',
-      emoji: '→',
-      duration: 3,
-    },
-    {
-      instruction: 'Энгийнээр инээмсэглэх',
-      emoji: '😊',
-      duration: 3,
-    },
-  ]
 
   const processChallenge = async () => {
     setIsProcessing(true)
@@ -58,7 +186,7 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
       }
     } catch (err) {
       console.error('Liveness check failed', err)
-      setError('Шалгалт амжилтгүй боллоо. Дахин оролдоно уу.')
+      setError('Verification failed. Please try again.')
     } finally {
       setIsProcessing(false)
     }
@@ -66,105 +194,133 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
 
   useEffect(() => {
     if (!isProcessing && completedChallenges < challenges.length && !error) {
-      const timer = setTimeout(processChallenge, 1000)
+      const timer = setTimeout(processChallenge, 1500)
       return () => clearTimeout(timer)
     }
   }, [isProcessing, completedChallenges, error, currentChallenge])
 
   const challenge = challenges[currentChallenge]
+  const Icon = challenge.icon
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background px-4 py-8 md:py-12">
+      {/* Background pattern */}
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
+
       <motion.div
-        className="max-w-md w-full text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        className="max-w-lg mx-auto relative z-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
       >
-        <h1 className="text-3xl font-black mb-2 bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-          Амьд эсэхийг шалгах
-        </h1>
-        <p className="text-muted-foreground mb-12">
-          Бодит хүн мөн эсэхийг батлахын тулд даалгавруудыг биелүүлнэ үү
-        </p>
+        {/* Header */}
+        <motion.div variants={itemVariants} className="text-center mb-8">
+          <motion.span 
+            className="inline-flex items-center gap-2 bg-[#4ecdc4] text-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] mb-6"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200 }}
+          >
+            <Eye className="w-4 h-4" />
+            Step 2 of 3
+          </motion.span>
 
-        {/* Camera Placeholder */}
-        <motion.div
-          className="relative mb-12 rounded-xl overflow-hidden border-2 border-primary/30"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="relative w-full aspect-square bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-            {/* Face Mesh Placeholder */}
-            <svg className="w-32 h-32 text-primary/30" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" />
-              <circle cx="35" cy="40" r="4" fill="currentColor" />
-              <circle cx="65" cy="40" r="4" fill="currentColor" />
-              <path d="M 40 60 Q 50 70 60 60" fill="none" stroke="currentColor" strokeWidth="2" />
-            </svg>
-
-            {/* Scanning Line Animation */}
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-accent/20 scan-line"></div>
-          </div>
-        </motion.div>
-
-        {/* Challenge Instruction */}
-        <motion.div
-          key={currentChallenge}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mb-8 p-8 glassmorphism-dark rounded-xl border border-primary/30"
-        >
-          <div className="text-6xl mb-4">{challenge.emoji}</div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            {challenge.instruction}
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Completing challenge {currentChallenge + 1} of {challenges.length}
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
+            LIVENESS <span className="text-[#ff6b9d]">CHECK</span>
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+            Complete the challenges to verify you're a real person
           </p>
         </motion.div>
 
-        {/* Progress Indicators */}
-        <div className="flex justify-center gap-3 mb-12">
-          {challenges.map((_, index) => (
-            <motion.div
-              key={index}
-              animate={{
-                scale: index === currentChallenge ? 1.2 : 1,
-              }}
-            >
-              {index <= completedChallenges ? (
-                <CheckCircle className="w-8 h-8 text-accent" />
-              ) : (
-                <Circle
-                  className={`w-8 h-8 ${
-                    index === currentChallenge
-                      ? 'text-primary animate-pulse'
-                      : 'text-primary/30'
-                  }`}
-                />
-              )}
-            </motion.div>
-          ))}
-        </div>
+        {/* Progress */}
+        <motion.div variants={itemVariants}>
+          <ChallengeProgress
+            current={currentChallenge}
+            total={challenges.length}
+            completed={completedChallenges}
+          />
+        </motion.div>
+
+        {/* Camera view */}
+        <motion.div variants={itemVariants} className="mb-8">
+          <CameraView isProcessing={isProcessing} />
+        </motion.div>
+
+        {/* Current challenge */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentChallenge}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className={`${challenge.color} p-6 border-3 border-foreground shadow-[6px_6px_0px_var(--foreground)] mb-6`}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-foreground/10 border-2 border-foreground flex items-center justify-center flex-shrink-0">
+                <Icon className="w-7 h-7" strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-1">
+                  Challenge {currentChallenge + 1} of {challenges.length}
+                </p>
+                <h2 className="text-xl font-black uppercase tracking-tight">
+                  {challenge.instruction}
+                </h2>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Status */}
         {isProcessing && (
-          <div className="flex items-center justify-center gap-2 text-accent">
+          <motion.div 
+            className="flex items-center justify-center gap-3 bg-[#ffd93d] p-4 border-3 border-foreground"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Verifying...</span>
-          </div>
+            <span className="font-bold uppercase tracking-wider">Verifying...</span>
+          </motion.div>
         )}
 
+        {/* Error */}
         {error && (
-          <div className="text-destructive text-sm mt-6 space-y-3">
-            <p>{error}</p>
-            <Button onClick={processChallenge} disabled={isProcessing}>
-              Retry
+          <motion.div
+            className="bg-[#ff6b6b] text-white p-4 border-3 border-foreground space-y-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="font-bold">{error}</span>
+            </div>
+            <Button 
+              onClick={processChallenge} 
+              disabled={isProcessing}
+              className="w-full bg-white text-[#ff6b6b] hover:bg-white/90 border-2 border-foreground font-bold uppercase"
+            >
+              Try Again
             </Button>
-          </div>
+          </motion.div>
         )}
+
+        {/* Tips */}
+        <motion.div
+          variants={itemVariants}
+          className="mt-8 grid grid-cols-3 gap-3"
+        >
+          {[
+            { label: 'Good Light', tip: 'Face a window' },
+            { label: 'Center Face', tip: 'Stay in frame' },
+            { label: 'Clear View', tip: 'Remove glasses' },
+          ].map((item) => (
+            <div key={item.label} className="bg-muted p-3 border-2 border-foreground text-center">
+              <p className="font-bold text-xs uppercase tracking-wider">{item.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">{item.tip}</p>
+            </div>
+          ))}
+        </motion.div>
       </motion.div>
     </div>
   )

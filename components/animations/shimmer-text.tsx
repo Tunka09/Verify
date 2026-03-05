@@ -23,7 +23,7 @@ export default function ShimmerText({ text, className = '' }: ShimmerTextProps) 
       opacity: 1,
       y: 0,
       transition: {
-        type: 'spring',
+        type: 'spring' as const,
         damping: 12,
         stiffness: 200,
       },

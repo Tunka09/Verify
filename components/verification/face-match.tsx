@@ -2,9 +2,10 @@
 
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, Loader2, Upload } from 'lucide-react'
+import { Camera, Loader2, Upload, ArrowRight, RefreshCw, CheckCircle, XCircle, Fingerprint } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { matchFaces } from '@/lib/verification-service'
+import type { Easing } from 'framer-motion'
 
 interface FaceMatchProps {
   idImage?: string
@@ -22,6 +23,162 @@ interface FaceMatchResult {
   selfie_quality?: number
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.46, 0.45, 0.94] as Easing
+    },
+  },
+}
+
+// Image card component
+function ImageCard({ 
+  label, 
+  image, 
+  color,
+  placeholder,
+  onUpload
+}: { 
+  label: string
+  image?: string | null
+  color: string
+  placeholder?: React.ReactNode
+  onUpload?: (file: File) => void
+}) {
+  return (
+    <div>
+      <div className={`${color} px-3 py-1 border-3 border-foreground border-b-0 inline-block`}>
+        <span className="text-xs font-black uppercase tracking-wider">{label}</span>
+      </div>
+      <div 
+        className="relative aspect-square border-3 border-foreground bg-white overflow-hidden"
+        style={{ boxShadow: '6px 6px 0px var(--foreground)' }}
+      >
+        {image ? (
+          <>
+            <img
+              src={image}
+              alt={label}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-0 inset-x-0 bg-foreground/80 text-background py-2 px-3 flex items-center justify-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase">Ready</span>
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            {onUpload ? (
+              <>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) onUpload(file)
+                  }}
+                  className="hidden"
+                  id="selfie-upload"
+                />
+                <label 
+                  htmlFor="selfie-upload" 
+                  className="cursor-pointer w-full h-full flex flex-col items-center justify-center hover:bg-[#c6f135]/30 transition-colors"
+                >
+                  <Upload className="w-10 h-10 mb-3 text-foreground/50" strokeWidth={2} />
+                  <p className="font-bold text-sm uppercase">Upload Photo</p>
+                  <p className="text-xs text-muted-foreground mt-1">or drag & drop</p>
+                </label>
+              </>
+            ) : (
+              placeholder
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Match result display
+function MatchResult({ result }: { result: FaceMatchResult }) {
+  const isMatch = result.isMatch || result.match
+  const confidence = result.confidence || 0
+  const passed = confidence >= 60
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`${passed ? 'bg-[#c6f135]' : 'bg-[#ff6b6b]'} p-6 border-3 border-foreground shadow-[6px_6px_0px_var(--foreground)]`}
+    >
+      <div className="flex items-center gap-4 mb-4">
+        <div className={`w-16 h-16 ${passed ? 'bg-foreground/10' : 'bg-white/20'} border-2 border-foreground flex items-center justify-center`}>
+          {passed ? (
+            <CheckCircle className="w-8 h-8" strokeWidth={2.5} />
+          ) : (
+            <XCircle className="w-8 h-8 text-white" strokeWidth={2.5} />
+          )}
+        </div>
+        <div>
+          <h3 className={`text-2xl font-black uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
+            {passed ? 'Match Found!' : 'No Match'}
+          </h3>
+          <p className={`text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
+            {passed ? 'Faces successfully matched' : 'Confidence below 60% threshold'}
+          </p>
+        </div>
+      </div>
+
+      {/* Confidence bar */}
+      <div className="bg-foreground/10 p-4 border-2 border-foreground">
+        <div className="flex justify-between mb-2">
+          <span className={`font-bold text-sm uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
+            Match Confidence
+          </span>
+          <span className={`font-mono font-black text-xl ${passed ? 'text-foreground' : 'text-white'}`}>
+            {confidence.toFixed(1)}%
+          </span>
+        </div>
+        <div className="h-4 bg-white/50 border-2 border-foreground overflow-hidden">
+          <motion.div
+            className={`h-full ${passed ? 'bg-foreground' : 'bg-white'}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${confidence}%` }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+          />
+        </div>
+        <div className="flex justify-between mt-2">
+          <span className={`text-xs ${passed ? 'text-foreground/50' : 'text-white/50'}`}>0%</span>
+          <span className={`text-xs font-bold ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
+            60% required
+          </span>
+          <span className={`text-xs ${passed ? 'text-foreground/50' : 'text-white/50'}`}>100%</span>
+        </div>
+      </div>
+
+      {result.similarity !== undefined && (
+        <div className={`mt-3 text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
+          Face Distance: <span className="font-mono font-bold">{(1 - result.similarity).toFixed(4)}</span>
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const [selfie, setSelfie] = useState<string | null>(null)
   const [matching, setMatching] = useState(false)
@@ -30,21 +187,12 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const handleCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return
-
-    const context = canvasRef.current.getContext('2d')
-    if (!context) return
-
-    context.drawImage(videoRef.current, 0, 0, 300, 300)
-    const imageData = canvasRef.current.toDataURL('image/jpeg')
-    setSelfie(imageData)
-  }
-
   const handleFileUpload = (file: File) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       setSelfie(e.target?.result as string)
+      setMatchResult(null)
+      setError(null)
     }
     reader.readAsDataURL(file)
   }
@@ -52,7 +200,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const handleMatch = async () => {
     if (!selfie) return
     if (!idImage) {
-      setError('Эхлээд бичиг баримтаа оруулна уу.')
+      setError('Please upload your ID document first.')
       return
     }
 
@@ -61,11 +209,10 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     try {
       const response = await matchFaces(idImage, selfie)
       
-      // Backend response: { success, isMatch, confidence, similarity }
       const result: FaceMatchResult = {
         success: response.success,
         isMatch: response.isMatch,
-        match: response.isMatch, // compatibility
+        match: response.isMatch,
         confidence: response.confidence,
         similarity: response.similarity,
         match_percentage: response.confidence
@@ -75,187 +222,150 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
       onComplete(selfie, result)
     } catch (err) {
       console.error('Face match failed', err)
-      const message = err instanceof Error ? err.message : 'Царай танилт амжилтгүй боллоо. Дахин оролдоно уу.'
+      const message = err instanceof Error ? err.message : 'Face matching failed. Please try again.'
       setError(message)
     } finally {
       setMatching(false)
     }
   }
 
+  const resetSelfie = () => {
+    setSelfie(null)
+    setMatchResult(null)
+    setError(null)
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background px-4 py-8 md:py-12">
+      {/* Background pattern */}
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
+
+      {/* Hidden elements for camera capture */}
+      <canvas ref={canvasRef} width={300} height={300} className="hidden" />
+      <video ref={videoRef} width={300} height={300} className="hidden" />
+
       <motion.div
-        className="max-w-3xl w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        className="max-w-3xl mx-auto relative z-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
       >
-        <h1 className="text-3xl font-black mb-2 text-center bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-          Царай танилт
-        </h1>
-        <p className="text-muted-foreground text-center mb-12">
-          Бичиг баримттайгаа тулгахын тулд селфи зураг авна уу
-        </p>
-
-        {/* Comparison Grid */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          {/* ID Photo */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
+        {/* Header */}
+        <motion.div variants={itemVariants} className="text-center mb-8">
+          <motion.span 
+            className="inline-flex items-center gap-2 bg-[#ff6b9d] text-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] mb-6"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200 }}
           >
-            <p className="text-sm text-muted-foreground mb-3 font-semibold">
-              Document Photo
-            </p>
-            {idImage ? (
-              <div className="relative rounded-xl overflow-hidden border-2 border-primary/30">
-                <img
-                  src={idImage || "/placeholder.svg"}
-                  alt="ID"
-                  className="w-full aspect-square object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none"></div>
+            <Fingerprint className="w-4 h-4" />
+            Step 3 of 3
+          </motion.span>
+
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
+            FACE <span className="text-[#4ecdc4]">MATCH</span>
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-md mx-auto">
+            Upload a selfie to compare with your ID document photo
+          </p>
+        </motion.div>
+
+        {/* Comparison grid */}
+        <motion.div variants={itemVariants} className="grid md:grid-cols-2 gap-6 mb-8">
+          <ImageCard
+            label="ID Document"
+            image={idImage}
+            color="bg-[#4ecdc4]"
+            placeholder={
+              <div className="text-center p-4">
+                <p className="font-bold text-foreground/50">No ID uploaded</p>
               </div>
-            ) : (
-              <div className="w-full aspect-square bg-primary/10 rounded-xl border-2 border-dashed border-primary/30 flex items-center justify-center">
-                <p className="text-muted-foreground">No ID loaded</p>
-              </div>
-            )}
-          </motion.div>
+            }
+          />
+          
+          <ImageCard
+            label="Your Selfie"
+            image={selfie}
+            color="bg-[#ff6b9d]"
+            onUpload={handleFileUpload}
+          />
+        </motion.div>
 
-          {/* Selfie */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <p className="text-sm text-muted-foreground mb-3 font-semibold">
-              Your Selfie
-            </p>
-            <div className="relative rounded-xl overflow-hidden border-2 border-primary/30">
-              {selfie ? (
-                <div className="relative">
-                  <img
-                    src={selfie || "/placeholder.svg"}
-                    alt="Selfie"
-                    className="w-full aspect-square object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent pointer-events-none"></div>
-                </div>
-              ) : (
-                <div className="relative w-full aspect-square bg-accent/10 flex flex-col items-center justify-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleFileUpload(file)
-                    }}
-                    className="hidden"
-                    id="selfie-upload"
-                  />
-                  <label htmlFor="selfie-upload" className="cursor-pointer w-full h-full flex flex-col items-center justify-center hover:bg-accent/20 transition-colors">
-                    <Upload className="w-8 h-8 text-accent mb-2" />
-                    <p className="text-sm text-accent font-semibold">
-                      Upload or capture
-                    </p>
-                  </label>
-
-                  <canvas
-                    ref={canvasRef}
-                    width={300}
-                    height={300}
-                    className="hidden"
-                  />
-                  <video
-                    ref={videoRef}
-                    width={300}
-                    height={300}
-                    className="hidden"
-                  />
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Action Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-4"
+        {/* VS indicator */}
+        <motion.div 
+          variants={itemVariants}
+          className="flex justify-center mb-8"
         >
-          {!selfie && (
-            <Button
-              onClick={handleCapture}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-foreground rounded-lg font-semibold py-6"
-            >
-              <Camera className="w-5 h-5 mr-2" />
-              Capture Selfie
-            </Button>
-          )}
+          <div className="bg-[#ffd93d] w-16 h-16 border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] flex items-center justify-center">
+            <span className="font-black text-xl">VS</span>
+          </div>
+        </motion.div>
 
-          {selfie && (
-            <Button
-              onClick={handleMatch}
-              disabled={matching}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-foreground rounded-lg font-semibold py-6"
-            >
-              {matching ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Matching Faces...
-                </>
-              ) : (
-                'Verify Face Match'
-              )}
-            </Button>
-          )}
-
-          {error && (
-            <p className="text-destructive text-sm text-center">{error}</p>
-          )}
-
-          {matchResult && (
-            <div className="glassmorphism-dark p-6 rounded-lg border border-primary/30 text-center space-y-3">
-              <p className="text-xl font-bold">
-                {matchResult.isMatch || matchResult.match ? (
-                  <span className="text-green-500">✓ Нүүрүүд таарч байна!</span>
+        {/* Action buttons */}
+        <motion.div variants={itemVariants} className="space-y-4">
+          {selfie && !matchResult && (
+            <div className="flex gap-4">
+              <Button
+                onClick={resetSelfie}
+                variant="outline"
+                className="flex-1 bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Retake
+              </Button>
+              <Button
+                onClick={handleMatch}
+                disabled={matching}
+                className="flex-1 bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] disabled:opacity-70"
+              >
+                {matching ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Matching...
+                  </>
                 ) : (
-                  <span className="text-red-500">✗ Нүүрүүд таарахгүй байна</span>
+                  <>
+                    <Fingerprint className="w-5 h-5 mr-2" />
+                    Compare Faces
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
                 )}
-              </p>
-              {matchResult.confidence !== undefined && (
-                <div className="space-y-2">
-                  <p className="text-2xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    {matchResult.confidence.toFixed(2)}%
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Таарах хувь (Match Confidence)
-                  </p>
-                  <div className="w-full h-3 bg-primary/20 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${matchResult.confidence}%` }}
-                      transition={{ duration: 1, ease: 'easeOut' }}
-                      className={`h-full ${
-                        matchResult.confidence >= 60
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                          : 'bg-gradient-to-r from-red-500 to-orange-500'
-                      }`}
-                    />
-                  </div>
-                </div>
-              )}
-              {matchResult.similarity !== undefined && (
-                <p className="text-sm text-muted-foreground">
-                  Face Distance: {(1 - matchResult.similarity).toFixed(4)}
-                </p>
-              )}
+              </Button>
             </div>
           )}
+
+          {/* Error display */}
+          {error && (
+            <motion.div
+              className="bg-[#ff6b6b] text-white p-4 border-3 border-foreground flex items-center gap-3"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <XCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="font-bold">{error}</span>
+            </motion.div>
+          )}
+
+          {/* Match result */}
+          {matchResult && <MatchResult result={matchResult} />}
+        </motion.div>
+
+        {/* Tips */}
+        <motion.div
+          variants={itemVariants}
+          className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3"
+        >
+          {[
+            { label: 'Face Camera', tip: 'Look straight' },
+            { label: 'Good Light', tip: 'Avoid shadows' },
+            { label: 'Plain BG', tip: 'Clear background' },
+            { label: 'No Filter', tip: 'Natural photo' },
+          ].map((item) => (
+            <div key={item.label} className="bg-muted p-3 border-2 border-foreground text-center">
+              <p className="font-bold text-xs uppercase tracking-wider">{item.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">{item.tip}</p>
+            </div>
+          ))}
         </motion.div>
       </motion.div>
     </div>

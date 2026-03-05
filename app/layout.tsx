@@ -3,13 +3,20 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ 
+  subsets: ["latin"],
+  variable: '--font-geist',
+})
+
+const geistMono = Geist_Mono({ 
+  subsets: ["latin"],
+  variable: '--font-geist-mono',
+})
 
 export const metadata: Metadata = {
-  title: 'NeuroVerify - AI Identity Verification',
-  description: 'Next-gen cyberpunk AI identity verification and celebrity recognition platform',
-  generator: 'v0.app',
+  title: 'Verify - AI Identity Verification',
+  description: 'Fast, secure AI-powered identity verification with neobrutalism design',
+  generator: 'Next.js',
   icons: {
     icon: [
       {
@@ -35,8 +42,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${_geist.className} font-sans antialiased`}>
+    <html lang="en">
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>
