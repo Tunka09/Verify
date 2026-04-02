@@ -150,7 +150,7 @@ export default function HeroSection() {
           {/* Main headline - Asymmetric layout */}
           <motion.div variants={itemVariants} className="mb-8">
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tighter">
-              <span className="block">НҮҮР</span>
+              <span className="block">НYYР</span>
               <span className="block text-[#3b82f6] relative inline-block">
                 ТАНИХ
                 <motion.span 
