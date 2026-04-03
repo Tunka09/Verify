@@ -200,6 +200,13 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     return () => { streamRef.current?.getTracks().forEach((t) => t.stop()) }
   }, [])
 
+  // reassign stream to video element when it re-mounts after retake
+  useEffect(() => {
+    if (!selfie && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+    }
+  }, [selfie])
+
   const handleCapture = () => {
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -248,16 +255,6 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     setSelfie(null)
     setMatchResult(null)
     setError(null)
-    // restart camera if it was stopped
-    if (!streamRef.current || streamRef.current.getTracks().every(t => t.readyState === 'ended')) {
-      navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: 'user' }, audio: false })
-        .then((s) => {
-          streamRef.current = s
-          if (videoRef.current) videoRef.current.srcObject = s
-        })
-        .catch(() => setCamError('Camera access denied'))
-    }
   }
 
   return (

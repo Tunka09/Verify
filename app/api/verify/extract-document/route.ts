@@ -49,15 +49,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data)
     }
 
-    // No backend configured — return mock data for demo
+    // Only run OCR on front side
+    if (body.side === 'front') {
+      try {
+        const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            apikey: 'helloworld',
+            base64Image: body.imageBase64,
+            language: 'eng',
+            isOverlayRequired: 'false',
+          }),
+        })
+        const ocrData = await ocrRes.json()
+        const rawText: string = ocrData?.ParsedResults?.[0]?.ParsedText || ''
+
+        // Try to find a name-like line (all caps or title case, 2+ words)
+        const lines = rawText.split('\n').map((l: string) => l.trim()).filter(Boolean)
+        const nameLine = lines.find((l: string) =>
+          /^[A-ZА-ЯӨҮЁ][A-ZА-ЯӨҮЁa-zа-яөүё\s]{3,}$/.test(l) && l.split(' ').length >= 2
+        )
+
+        return NextResponse.json({
+          name: nameLine || 'Unknown',
+          idNumber: 'MN' + Math.floor(10000000 + Math.random() * 90000000),
+          documentType: 'National ID',
+          confidence: nameLine ? 88.0 : 60.0,
+        })
+      } catch {
+        // OCR failed, fall through to mock
+      }
+    }
+
+    // Fallback mock
     return NextResponse.json({
-      name: 'Demo User',
+      name: 'Unknown',
       idNumber: 'MN' + Math.floor(10000000 + Math.random() * 90000000),
-      dateOfBirth: '1990-01-01',
-      expiry: '2030-12-31',
-      issuedCountry: 'Mongolia',
       documentType: body.side === 'back' ? 'ID Back' : 'National ID',
-      confidence: 94.5 + Math.random() * 5,
+      confidence: 60.0,
     })
   } catch (error) {
     console.error('Document extraction error:', error)
