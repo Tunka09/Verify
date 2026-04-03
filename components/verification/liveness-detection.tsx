@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Circle, Loader2, Eye, Smile, RotateCcw, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -96,55 +96,52 @@ function ChallengeProgress({
   )
 }
 
-// Camera placeholder with face mesh
+// Live camera view
 function CameraView({ isProcessing }: { isProcessing: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [camError, setCamError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let stream: MediaStream | null = null
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then((s) => {
+        stream = s
+        if (videoRef.current) videoRef.current.srcObject = s
+      })
+      .catch(() => setCamError('Camera access denied'))
+    return () => { stream?.getTracks().forEach((t) => t.stop()) }
+  }, [])
+
   return (
     <motion.div
       className="relative w-full aspect-square max-w-sm mx-auto border-4 border-foreground bg-muted overflow-hidden"
       style={{ boxShadow: '8px 8px 0px var(--foreground)' }}
     >
-      {/* Face mesh visualization */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <svg className="w-48 h-48" viewBox="0 0 100 100">
-          <motion.circle
-            cx="50"
-            cy="50"
-            r="45"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="text-foreground/30"
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          {/* Eyes */}
-          <circle cx="35" cy="40" r="4" className="fill-foreground/50" />
-          <circle cx="65" cy="40" r="4" className="fill-foreground/50" />
-          {/* Nose */}
-          <line x1="50" y1="45" x2="50" y2="55" stroke="currentColor" strokeWidth="2" className="text-foreground/30" />
-          {/* Mouth */}
-          <motion.path 
-            d="M 40 65 Q 50 72 60 65" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            className="text-foreground/50"
-            animate={{ d: ['M 40 65 Q 50 72 60 65', 'M 40 65 Q 50 68 60 65', 'M 40 65 Q 50 72 60 65'] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </svg>
-      </div>
+      {camError ? (
+        <div className="absolute inset-0 flex items-center justify-center text-center px-4">
+          <p className="font-bold text-sm text-muted-foreground">{camError}</p>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+        />
+      )}
 
       {/* Corner brackets */}
-      <div className="absolute top-4 left-4 w-8 h-8 border-l-4 border-t-4 border-foreground" />
-      <div className="absolute top-4 right-4 w-8 h-8 border-r-4 border-t-4 border-foreground" />
-      <div className="absolute bottom-4 left-4 w-8 h-8 border-l-4 border-b-4 border-foreground" />
-      <div className="absolute bottom-4 right-4 w-8 h-8 border-r-4 border-b-4 border-foreground" />
+      <div className="absolute top-4 left-4 w-8 h-8 border-l-4 border-t-4 border-foreground z-10" />
+      <div className="absolute top-4 right-4 w-8 h-8 border-r-4 border-t-4 border-foreground z-10" />
+      <div className="absolute bottom-4 left-4 w-8 h-8 border-l-4 border-b-4 border-foreground z-10" />
+      <div className="absolute bottom-4 right-4 w-8 h-8 border-r-4 border-b-4 border-foreground z-10" />
 
       {/* Scanning animation */}
       {isProcessing && (
         <motion.div
-          className="absolute inset-x-0 h-1 bg-[#c6f135]"
+          className="absolute inset-x-0 h-1 bg-[#c6f135] z-10"
           animate={{ top: ['0%', '100%', '0%'] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
         />
@@ -152,7 +149,7 @@ function CameraView({ isProcessing }: { isProcessing: boolean }) {
 
       {/* Processing overlay */}
       {isProcessing && (
-        <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
           <div className="bg-[#ffd93d] p-4 border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)]">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
