@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Loader2, Upload, ArrowRight, RefreshCw, CheckCircle, XCircle, Fingerprint } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -184,17 +184,32 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const [matching, setMatching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [matchResult, setMatchResult] = useState<FaceMatchResult | null>(null)
+  const [camError, setCamError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
-  const handleFileUpload = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setSelfie(e.target?.result as string)
-      setMatchResult(null)
-      setError(null)
-    }
-    reader.readAsDataURL(file)
+  useEffect(() => {
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then((s) => {
+        streamRef.current = s
+        if (videoRef.current) videoRef.current.srcObject = s
+      })
+      .catch(() => setCamError('Camera access denied'))
+    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()) }
+  }, [])
+
+  const handleCapture = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    setSelfie(canvas.toDataURL('image/jpeg'))
+    setMatchResult(null)
+    setError(null)
   }
 
   const handleMatch = async () => {
@@ -233,6 +248,16 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     setSelfie(null)
     setMatchResult(null)
     setError(null)
+    // restart camera if it was stopped
+    if (!streamRef.current || streamRef.current.getTracks().every(t => t.readyState === 'ended')) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then((s) => {
+          streamRef.current = s
+          if (videoRef.current) videoRef.current.srcObject = s
+        })
+        .catch(() => setCamError('Camera access denied'))
+    }
   }
 
   return (
@@ -240,9 +265,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
       {/* Background pattern */}
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
 
-      {/* Hidden elements for camera capture */}
-      <canvas ref={canvasRef} width={300} height={300} className="hidden" />
-      <video ref={videoRef} width={300} height={300} className="hidden" />
+      <canvas ref={canvasRef} className="hidden" />
 
       <motion.div
         className="max-w-3xl mx-auto relative z-10"
@@ -283,12 +306,47 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
             }
           />
           
-          <ImageCard
-            label="Your Selfie"
-            image={selfie}
-            color="bg-[#ff6b9d]"
-            onUpload={handleFileUpload}
-          />
+          {/* Selfie: live camera or captured photo */}
+          <div>
+            <div className="bg-[#ff6b9d] px-3 py-1 border-3 border-foreground border-b-0 inline-block">
+              <span className="text-xs font-black uppercase tracking-wider">Your Selfie</span>
+            </div>
+            <div
+              className="relative aspect-square border-3 border-foreground bg-black overflow-hidden"
+              style={{ boxShadow: '6px 6px 0px var(--foreground)' }}
+            >
+              {selfie ? (
+                <>
+                  <img src={selfie} alt="Selfie" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 inset-x-0 bg-foreground/80 text-background py-2 px-3 flex items-center justify-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase">Ready</span>
+                  </div>
+                </>
+              ) : camError ? (
+                <div className="w-full h-full flex items-center justify-center text-center px-4">
+                  <p className="font-bold text-sm text-white">{camError}</p>
+                </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
+                  <button
+                    onClick={handleCapture}
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#ff6b9d] border-3 border-foreground px-4 py-2 font-bold text-xs uppercase tracking-wider shadow-[3px_3px_0px_var(--foreground)] hover:shadow-[5px_5px_0px_var(--foreground)] transition-all"
+                  >
+                    <Camera className="w-4 h-4 inline mr-1" />
+                    Take Photo
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </motion.div>
 
         {/* VS indicator */}
