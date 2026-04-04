@@ -49,14 +49,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data)
     }
 
-    // No backend configured — return mock result for demo
-    const confidence = 75 + Math.random() * 20
-    return NextResponse.json({
-      success: true,
-      isMatch: confidence >= 60,
-      confidence: parseFloat(confidence.toFixed(1)),
-      similarity: parseFloat((confidence / 100).toFixed(4)),
-    })
+    // No backend configured
+    return NextResponse.json(
+      { error: 'Face recognition service is unavailable. Could not connect to the AI backend.' },
+      { status: 503 }
+    )
   } catch (error) {
     console.error('Face match error:', error)
     return NextResponse.json(
