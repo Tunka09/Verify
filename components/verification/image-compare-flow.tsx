@@ -303,7 +303,7 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
       onComplete?.(compareResult)
     } catch (err) {
       console.error('Face compare failed', err)
-      setError('Face comparison failed. Make sure both images contain a visible face.')
+      setError(err instanceof Error ? err.message : 'Face comparison failed. Make sure both images contain a visible face.')
     } finally {
       setComparing(false)
     }

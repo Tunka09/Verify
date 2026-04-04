@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 60
+
 interface DocumentExtractionRequest {
   imageBase64: string
   side: 'front' | 'back'
