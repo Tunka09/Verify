@@ -60,3 +60,52 @@ export interface GroupAnalysisResult {
     position: { x: number; y: number; width: number; height: number }
   }>
 }
+
+// Shared verification flow types
+export interface ExtractedDocumentData {
+  name?: string
+  familyName?: string
+  surname?: string
+  givenName?: string
+  gender?: string
+  idNumber?: string
+  documentNumber?: string
+  registrationNumber?: string
+  dateOfBirth?: string
+  dateOfIssue?: string
+  expiry?: string
+  issuedCountry?: string
+  documentType?: string
+  authenticity?: number
+  confidence?: number
+  backData?: Record<string, unknown>
+}
+
+export interface LivenessResult {
+  isLive: boolean
+  confidence?: number
+  challenges?: Record<string, boolean>
+  simulated?: boolean
+}
+
+export interface FaceMatchVerifyResult {
+  success?: boolean
+  isMatch?: boolean
+  match?: boolean
+  confidence?: number
+  similarity?: number
+  match_percentage?: number
+  id_face_quality?: number
+  selfie_quality?: number
+}
+
+export interface VerificationRecord {
+  verified: boolean
+  confidence: number
+  userName?: string
+  documentNumber?: string
+  matchSimilarity?: number
+  livenessConfidence?: number
+  documentConfidence?: number
+  elapsedTime?: string
+}

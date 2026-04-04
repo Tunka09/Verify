@@ -5,20 +5,9 @@ interface LivenessCheckRequest {
   videoFrame: string
 }
 
-interface LivenessResult {
-  isLive: boolean
-  confidence: number
-  challenges: {
-    blink: boolean
-    headTurn: boolean
-    smile: boolean
-  }
-}
-
 /**
  * POST /api/verify/liveness-check
- * Performs liveness detection to prevent spoofing
- * Uses computer vision to detect facial movements
+ * Proxies to the Python backend when available; falls back to a simulated result.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -31,24 +20,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Simulate liveness detection with MediaPipe/OpenCV
-    // In production, integrate with:
-    // - MediaPipe Face Mesh for real-time face tracking
-    // - Eye gaze tracking for blink detection
-    // - Head pose estimation for movement detection
-    const livenessResult: LivenessResult = {
-      isLive: true,
-      confidence: 97.8 + Math.random() * 2,
-      challenges: {
-        blink: true,
-        headTurn: true,
-        smile: true,
-      },
+    const backendBase = process.env.BACKEND_URL
+
+    if (backendBase) {
+      const apiKey = process.env.API_KEY || ''
+      const response = await fetch(`${backendBase}/verify/liveness-check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify({
+          challenge: body.challenge,
+          videoFrame: body.videoFrame,
+        }),
+      })
+
+      if (response.ok) {
+        return NextResponse.json(await response.json())
+      }
+
+      const errorText = await response.text()
+      console.error('Backend liveness check error:', response.status, errorText)
+      // Fall through to simulated result rather than hard-failing
     }
 
+    // Simulated result — clearly marked so callers can disclose this to users
     return NextResponse.json({
       success: true,
-      data: livenessResult,
+      data: {
+        isLive: true,
+        confidence: 97.8 + Math.random() * 2,
+        challenges: { blink: true, headTurn: true, smile: true },
+        simulated: true,
+      },
       processingTime: Math.random() * 300 + 1200,
     })
   } catch (error) {

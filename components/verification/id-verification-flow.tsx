@@ -6,29 +6,11 @@ import { Upload, FileText, Loader2, CheckCircle, Camera, ArrowRight, X, AlertCir
 import { Button } from '@/components/ui/button'
 import { extractDocument } from '@/lib/verification-service'
 import type { Easing } from 'framer-motion'
+import type { ExtractedDocumentData } from '@/types/verification'
 
 interface IDVerificationFlowProps {
   onComplete: (data: ExtractedDocumentData) => void
   onUpload: (front?: string, back?: string) => void
-}
-
-interface ExtractedDocumentData {
-  name?: string
-  familyName?: string
-  surname?: string
-  givenName?: string
-  gender?: string
-  idNumber?: string
-  documentNumber?: string
-  registrationNumber?: string
-  dateOfBirth?: string
-  dateOfIssue?: string
-  expiry?: string
-  issuedCountry?: string
-  documentType?: string
-  authenticity?: number
-  confidence?: number
-  backData?: Record<string, unknown>
 }
 
 const containerVariants = {

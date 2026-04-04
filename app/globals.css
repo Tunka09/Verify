@@ -308,13 +308,12 @@
   background-size: 20px 20px;
 }
 
-/* Grid pattern background */
+/* Grid pattern background — opacity is controlled by Tailwind utility on the element */
 .grid-pattern {
-  background-image: 
+  background-image:
     linear-gradient(var(--border) 1px, transparent 1px),
     linear-gradient(90deg, var(--border) 1px, transparent 1px);
   background-size: 40px 40px;
-  opacity: 0.15;
 }
 
 /* Striped pattern */

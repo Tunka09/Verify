@@ -6,20 +6,10 @@ import { CheckCircle, XCircle, Download, Share2, Home, AlertTriangle, Shield, Cl
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import type { Easing } from 'framer-motion'
+import type { VerificationRecord } from '@/types/verification'
 
 interface VerificationSuccessProps {
-  result: {
-    verified: boolean
-    confidence: number
-    userName?: string
-    documentType?: string
-    documentNumber?: string
-    verificationId?: string
-    livenessConfidence?: number
-    matchSimilarity?: number
-  }
-  loading?: boolean
-  error?: string | null
+  result: VerificationRecord & { documentType?: string; verificationId?: string }
 }
 
 const containerVariants = {
@@ -39,20 +29,20 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { 
-      duration: 0.5, 
+    transition: {
+      duration: 0.5,
       ease: [0.25, 0.46, 0.45, 0.94] as Easing
     },
   },
 }
 
 // Animated progress ring
-function ProgressRing({ 
-  progress, 
-  size = 120, 
+function ProgressRing({
+  progress,
+  size = 120,
   strokeWidth = 8,
   color = '#c6f135'
-}: { 
+}: {
   progress: number
   size?: number
   strokeWidth?: number
@@ -89,7 +79,7 @@ function ProgressRing({
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <motion.span 
+        <motion.span
           className="text-2xl md:text-3xl font-black"
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -110,14 +100,14 @@ function BarChart({ data }: { data: { label: string; value: number; color: strin
         <div key={item.label}>
           <div className="flex justify-between mb-2">
             <span className="font-bold text-sm uppercase tracking-wider">{item.label}</span>
-            <span className="font-mono font-bold">{item.value.toFixed(1)}%</span>
+            <span className="font-mono font-bold">{item.value > 0 ? `${item.value.toFixed(1)}%` : 'N/A'}</span>
           </div>
           <div className="h-6 bg-muted border-2 border-foreground overflow-hidden">
             <motion.div
               className="h-full"
               style={{ backgroundColor: item.color }}
               initial={{ width: 0 }}
-              animate={{ width: `${item.value}%` }}
+              animate={{ width: item.value > 0 ? `${item.value}%` : '0%' }}
               transition={{ duration: 1, ease: 'easeOut', delay: 0.3 + i * 0.2 }}
             />
           </div>
@@ -128,13 +118,13 @@ function BarChart({ data }: { data: { label: string; value: number; color: strin
 }
 
 // Stat card component
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
+function StatCard({
+  icon: Icon,
+  label,
+  value,
   color,
   delay = 0
-}: { 
+}: {
   icon: typeof Shield
   label: string
   value: string | number
@@ -181,19 +171,19 @@ function Confetti({ count = 30 }: { count?: number }) {
         <motion.div
           key={i}
           className="absolute w-3 h-3 border-2 border-foreground"
-          style={{ 
-            left: `${piece.x}%`, 
+          style={{
+            left: `${piece.x}%`,
             backgroundColor: piece.color,
             rotate: Math.random() * 360,
           }}
           initial={{ y: -20, opacity: 1 }}
-          animate={{ 
-            y: '100vh', 
+          animate={{
+            y: '100vh',
             rotate: Math.random() * 720,
             x: (Math.random() - 0.5) * 200,
           }}
-          transition={{ 
-            duration: 2 + Math.random(), 
+          transition={{
+            duration: 2 + Math.random(),
             delay: piece.delay,
             ease: 'easeIn',
           }}
@@ -203,19 +193,54 @@ function Confetti({ count = 30 }: { count?: number }) {
   )
 }
 
-export default function VerificationSuccess({
-  result,
-  loading,
-  error,
-}: VerificationSuccessProps) {
+export default function VerificationSuccess({ result }: VerificationSuccessProps) {
   const isVerified = result.verified
   const confidence = result.confidence || 0
+  const [shareLabel, setShareLabel] = useState('Share Result')
 
   const chartData = [
     { label: 'Face Match', value: result.matchSimilarity || confidence, color: '#c6f135' },
-    { label: 'Liveness', value: result.livenessConfidence || 95, color: '#4ecdc4' },
-    { label: 'Document Auth', value: 98.5, color: '#ff6b9d' },
+    { label: 'Liveness', value: result.livenessConfidence || 0, color: '#4ecdc4' },
+    { label: 'Document Auth', value: result.documentConfidence || 0, color: '#ff6b9d' },
   ]
+
+  const handleDownload = () => {
+    const lines = [
+      'VERIFICATION CERTIFICATE',
+      '========================',
+      `Status:      ${isVerified ? 'VERIFIED' : 'REJECTED'}`,
+      `Name:        ${result.userName || 'N/A'}`,
+      `Document:    ${result.documentNumber || 'N/A'}`,
+      `Confidence:  ${confidence.toFixed(1)}%`,
+      result.livenessConfidence ? `Liveness:    ${result.livenessConfidence.toFixed(1)}%` : '',
+      result.documentConfidence ? `Doc Auth:    ${result.documentConfidence.toFixed(1)}%` : '',
+      result.elapsedTime ? `Duration:    ${result.elapsedTime}` : '',
+      `Issued:      ${new Date().toISOString()}`,
+    ].filter(Boolean).join('\n')
+
+    const blob = new Blob([lines], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `verify-certificate-${Date.now()}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleShare = async () => {
+    const text = `Identity verification ${isVerified ? 'passed ✓' : 'failed ✗'} — ${confidence.toFixed(1)}% confidence. Powered by Verify.`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Verify Result', text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        setShareLabel('Copied!')
+        setTimeout(() => setShareLabel('Share Result'), 2000)
+      }
+    } catch {
+      // User cancelled or clipboard unavailable — silently ignore
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 md:py-12 relative overflow-hidden">
@@ -226,12 +251,12 @@ export default function VerificationSuccess({
       <div className="absolute inset-0 grid-pattern pointer-events-none opacity-50" />
 
       {/* Decorative shapes */}
-      <motion.div 
+      <motion.div
         className="absolute top-20 right-10 w-16 h-16 bg-[#c6f135] border-3 border-foreground rotate-12 hidden lg:block"
         animate={{ rotate: [12, -12, 12] }}
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <motion.div 
+      <motion.div
         className="absolute bottom-32 left-10 w-12 h-12 bg-[#ff6b9d] rounded-full border-3 border-foreground hidden lg:block"
         animate={{ scale: [1, 1.2, 1] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -244,7 +269,7 @@ export default function VerificationSuccess({
         animate="visible"
       >
         {/* Status Header */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="text-center mb-8 md:mb-12"
         >
@@ -265,7 +290,7 @@ export default function VerificationSuccess({
           </motion.div>
 
           {/* Status text */}
-          <motion.h1 
+          <motion.h1
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -278,30 +303,17 @@ export default function VerificationSuccess({
             )}
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             className="text-lg md:text-xl text-muted-foreground max-w-md mx-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            {loading 
-              ? 'Processing verification...' 
-              : isVerified 
-                ? `Identity verified with ${confidence.toFixed(1)}% confidence`
-                : `Verification failed. Minimum 60% required, got ${confidence.toFixed(1)}%`
+            {isVerified
+              ? `Identity verified with ${confidence.toFixed(1)}% confidence`
+              : `Verification failed. Minimum 60% required, got ${confidence.toFixed(1)}%`
             }
           </motion.p>
-
-          {error && (
-            <motion.div 
-              className="inline-flex items-center gap-2 bg-[#ff6b6b] text-white px-4 py-2 border-2 border-foreground mt-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <AlertTriangle className="w-4 h-4" />
-              <span className="font-bold">{error}</span>
-            </motion.div>
-          )}
         </motion.div>
 
         {/* Main content grid */}
@@ -323,7 +335,7 @@ export default function VerificationSuccess({
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Full Name</p>
                 <p className="text-xl md:text-2xl font-black">{result.userName || 'Pending'}</p>
               </div>
-              
+
               <div className="pb-4 border-b-2 border-foreground/10">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Document Type</p>
                 <p className="text-lg font-bold">{result.documentType || 'ID Document'}</p>
@@ -358,9 +370,9 @@ export default function VerificationSuccess({
             </h3>
 
             <div className="flex justify-center mb-8">
-              <ProgressRing 
-                progress={confidence} 
-                color={confidence >= 60 ? '#c6f135' : '#ff6b6b'} 
+              <ProgressRing
+                progress={confidence}
+                color={confidence >= 60 ? '#c6f135' : '#ff6b6b'}
               />
             </div>
 
@@ -385,14 +397,14 @@ export default function VerificationSuccess({
         </div>
 
         {/* Stats grid */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
         >
           <StatCard
             icon={Camera}
             label="Liveness"
-            value={`${(result.livenessConfidence || 95).toFixed(1)}%`}
+            value={result.livenessConfidence ? `${result.livenessConfidence.toFixed(1)}%` : 'N/A'}
             color="bg-[#4ecdc4]"
             delay={0.6}
           />
@@ -406,14 +418,14 @@ export default function VerificationSuccess({
           <StatCard
             icon={FileText}
             label="Doc Auth"
-            value="98.5%"
+            value={result.documentConfidence ? `${result.documentConfidence.toFixed(1)}%` : 'N/A'}
             color="bg-[#ff6b9d]"
             delay={0.8}
           />
           <StatCard
             icon={Clock}
             label="Time"
-            value="2.3s"
+            value={result.elapsedTime || 'N/A'}
             color="bg-[#ffd93d]"
             delay={0.9}
           />
@@ -425,17 +437,19 @@ export default function VerificationSuccess({
           className="flex flex-col sm:flex-row gap-4"
         >
           <Button
+            onClick={handleDownload}
             className="flex-1 bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
           >
             <Download className="w-5 h-5 mr-2" />
             Download Certificate
           </Button>
           <Button
+            onClick={handleShare}
             variant="outline"
             className="flex-1 bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
           >
             <Share2 className="w-5 h-5 mr-2" />
-            Share Result
+            {shareLabel}
           </Button>
           <Link href="/" className="flex-1">
             <Button
@@ -447,6 +461,17 @@ export default function VerificationSuccess({
             </Button>
           </Link>
         </motion.div>
+
+        {/* Error banner */}
+        {result.verified === false && confidence === 0 && (
+          <motion.div
+            variants={itemVariants}
+            className="mt-6 inline-flex items-center gap-2 bg-[#ff6b6b] text-white px-4 py-2 border-2 border-foreground"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span className="font-bold">No verification data received</span>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )

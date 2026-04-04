@@ -126,7 +126,7 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-[100dvh] flex flex-col overflow-hidden bg-background">
       {/* Grid pattern background */}
-      <div className="absolute inset-0 grid-pattern pointer-events-none" />
+      <div className="absolute inset-0 grid-pattern pointer-events-none opacity-[0.15]" />
       
       {/* Decorative shapes */}
       <DecorativeShapes />

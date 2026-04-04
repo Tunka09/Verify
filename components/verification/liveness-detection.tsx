@@ -1,20 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, Circle, Loader2, Eye, Smile, RotateCcw, AlertCircle } from 'lucide-react'
+import { CheckCircle, Loader2, Eye, Smile, RotateCcw, AlertCircle, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { checkLiveness } from '@/lib/verification-service'
 import type { Easing } from 'framer-motion'
+import type { LivenessResult } from '@/types/verification'
 
 interface LivenessDetectionProps {
   onComplete: (result: LivenessResult) => void
-}
-
-interface LivenessResult {
-  isLive: boolean
-  confidence?: number
-  challenges?: Record<string, boolean>
 }
 
 const containerVariants = {
@@ -32,8 +27,8 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { 
-      duration: 0.5, 
+    transition: {
+      duration: 0.5,
       ease: [0.25, 0.46, 0.45, 0.94] as Easing
     },
   },
@@ -58,21 +53,21 @@ const challenges = [
 ]
 
 // Progress indicator
-function ChallengeProgress({ 
-  current, 
-  total, 
-  completed 
-}: { 
+function ChallengeProgress({
+  current,
+  total,
+  completed
+}: {
   current: number
   total: number
-  completed: number 
+  completed: number
 }) {
   return (
     <div className="flex items-center justify-center gap-4 mb-8">
       {Array.from({ length: total }).map((_, i) => {
         const isActive = i === current
         const isDone = i < completed
-        
+
         return (
           <motion.div
             key={i}
@@ -96,9 +91,8 @@ function ChallengeProgress({
   )
 }
 
-// Live camera view
-function CameraView({ isProcessing }: { isProcessing: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
+// Live camera view — accepts an external ref so the parent can capture frames
+function CameraView({ isProcessing, videoRef }: { isProcessing: boolean; videoRef: React.RefObject<HTMLVideoElement | null> }) {
   const [camError, setCamError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -111,7 +105,7 @@ function CameraView({ isProcessing }: { isProcessing: boolean }) {
       })
       .catch(() => setCamError('Camera access denied'))
     return () => { stream?.getTracks().forEach((t) => t.stop()) }
-  }, [])
+  }, [videoRef])
 
   return (
     <motion.div
@@ -164,14 +158,27 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
   const [isProcessing, setIsProcessing] = useState(false)
   const [completedChallenges, setCompletedChallenges] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-  const processChallenge = async () => {
+  const captureFrame = useCallback((): string => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || video.videoWidth === 0) return 'data:,placeholder'
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    return canvas.toDataURL('image/jpeg', 0.6)
+  }, [])
+
+  const processChallenge = useCallback(async () => {
     setIsProcessing(true)
     setError(null)
     try {
+      const frame = captureFrame()
       const response = await checkLiveness(
         challenges[currentChallenge].instruction,
-        'data:,placeholder-frame'
+        frame
       )
       const result = response.data || response
 
@@ -187,14 +194,14 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
     } finally {
       setIsProcessing(false)
     }
-  }
+  }, [currentChallenge, completedChallenges, captureFrame, onComplete])
 
   useEffect(() => {
     if (!isProcessing && completedChallenges < challenges.length && !error) {
       const timer = setTimeout(processChallenge, 1500)
       return () => clearTimeout(timer)
     }
-  }, [isProcessing, completedChallenges, error, currentChallenge])
+  }, [isProcessing, completedChallenges, error, processChallenge])
 
   const challenge = challenges[currentChallenge]
   const Icon = challenge.icon
@@ -204,6 +211,9 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
       {/* Background pattern */}
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
 
+      {/* Hidden canvas for frame capture */}
+      <canvas ref={canvasRef} className="hidden" />
+
       <motion.div
         className="max-w-lg mx-auto relative z-10"
         variants={containerVariants}
@@ -212,7 +222,7 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
       >
         {/* Header */}
         <motion.div variants={itemVariants} className="text-center mb-8">
-          <motion.span 
+          <motion.span
             className="inline-flex items-center gap-2 bg-[#4ecdc4] text-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] mb-6"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -226,8 +236,17 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
             LIVENESS <span className="text-[#ff6b9d]">CHECK</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Complete the challenges to verify you're a real person
+            Complete the challenges to verify you&apos;re a real person
           </p>
+        </motion.div>
+
+        {/* Simulation disclosure */}
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center gap-3 bg-[#ffd93d] p-3 border-3 border-foreground shadow-[3px_3px_0px_var(--foreground)] mb-6 text-sm font-bold"
+        >
+          <FlaskConical className="w-4 h-4 flex-shrink-0" />
+          <span>Demo mode: liveness is simulated. Real detection requires the Python backend.</span>
         </motion.div>
 
         {/* Progress */}
@@ -241,7 +260,7 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
 
         {/* Camera view */}
         <motion.div variants={itemVariants} className="mb-8">
-          <CameraView isProcessing={isProcessing} />
+          <CameraView isProcessing={isProcessing} videoRef={videoRef} />
         </motion.div>
 
         {/* Current challenge */}
@@ -271,7 +290,7 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
 
         {/* Status */}
         {isProcessing && (
-          <motion.div 
+          <motion.div
             className="flex items-center justify-center gap-3 bg-[#ffd93d] p-4 border-3 border-foreground"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -292,8 +311,8 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span className="font-bold">{error}</span>
             </div>
-            <Button 
-              onClick={processChallenge} 
+            <Button
+              onClick={processChallenge}
               disabled={isProcessing}
               className="w-full bg-white text-[#ff6b6b] hover:bg-white/90 border-2 border-foreground font-bold uppercase"
             >

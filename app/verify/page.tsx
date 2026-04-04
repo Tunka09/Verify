@@ -1,67 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import IDVerificationFlow from '@/components/verification/id-verification-flow'
 import LivenessDetection from '@/components/verification/liveness-detection'
 import FaceMatch from '@/components/verification/face-match'
 import VerificationSuccess from '@/components/verification/verification-success'
-
-// Match the exact interfaces from the components
-interface ExtractedDocumentData {
-  name?: string
-  idNumber?: string
-  documentNumber?: string
-  dateOfBirth?: string
-  expiry?: string
-  issuedCountry?: string
-  documentType?: string
-  authenticity?: number
-  confidence?: number
-  backData?: Record<string, unknown>
-}
-
-interface LivenessResult {
-  isLive: boolean
-  confidence?: number
-  challenges?: Record<string, boolean>
-}
-
-interface FaceMatchResult {
-  success?: boolean
-  isMatch?: boolean
-  match?: boolean
-  confidence?: number
-  similarity?: number
-  match_percentage?: number
-  id_face_quality?: number
-  selfie_quality?: number
-}
+import type { ExtractedDocumentData, LivenessResult, FaceMatchVerifyResult, VerificationRecord } from '@/types/verification'
 
 export default function VerifyPage() {
   const [step, setStep] = useState(0)
   const [uploadedID, setUploadedID] = useState<{ front?: string; back?: string }>({})
-  const [selfie, setSelfie] = useState<string | null>(null)
   const [documentData, setDocumentData] = useState<ExtractedDocumentData | null>(null)
   const [livenessData, setLivenessData] = useState<LivenessResult | null>(null)
-  const [faceMatchData, setFaceMatchData] = useState<FaceMatchResult | null>(null)
-  const [verificationRecord, setVerificationRecord] = useState<{
-    verified: boolean
-    confidence: number
-    userName?: string
-    documentNumber?: string
-    matchSimilarity?: number
-    livenessConfidence?: number
-  } | null>(null)
-  const [completionError, setCompletionError] = useState<string | null>(null)
-  const [completing, setCompleting] = useState(false)
+  const [verificationRecord, setVerificationRecord] = useState<VerificationRecord | null>(null)
+  const startTimeRef = useRef<number>(Date.now())
 
   const handleIDUpload = (front?: string, back?: string) => {
-    if (front) setUploadedID((prev) => ({ ...prev, front }))
-    if (back) setUploadedID((prev) => ({ ...prev, back }))
+    if (front) setUploadedID((prev: { front?: string; back?: string }) => ({ ...prev, front }))
+    if (back) setUploadedID((prev: { front?: string; back?: string }) => ({ ...prev, back }))
   }
 
   const handleIDComplete = (data: ExtractedDocumentData) => {
     setDocumentData(data)
+    startTimeRef.current = Date.now()
     setStep(1)
   }
 
@@ -70,58 +31,31 @@ export default function VerifyPage() {
     setStep(2)
   }
 
-  const handleFaceMatchComplete = (image: string, result: FaceMatchResult) => {
-    setSelfie(image)
-    setFaceMatchData(result)
-    
+  const handleFaceMatchComplete = (_image: string, result: FaceMatchVerifyResult) => {
     const matchConfidence = result.confidence || result.match_percentage || 0
     const isVerified = matchConfidence >= 60
-    
-    const verificationResult = {
+    const elapsedMs = Date.now() - startTimeRef.current
+
+    setVerificationRecord({
       verified: isVerified,
       confidence: matchConfidence,
       userName: documentData?.name || 'Unknown',
       documentNumber: documentData?.idNumber || documentData?.documentNumber,
       matchSimilarity: result.similarity,
-      livenessConfidence: livenessData?.confidence
-    }
-    
-    setVerificationRecord(verificationResult)
+      livenessConfidence: livenessData?.confidence,
+      documentConfidence: documentData?.confidence,
+      elapsedTime: `${(elapsedMs / 1000).toFixed(1)}s`,
+    })
     setStep(3)
   }
 
-  useEffect(() => {
-    const finalize = async () => {
-      if (
-        step === 3 &&
-        documentData &&
-        faceMatchData &&
-        verificationRecord &&
-        !completing
-      ) {
-        try {
-          setCompleting(true)
-          setCompletionError(null)
-        } catch (err) {
-          console.error('Verification completion failed', err)
-          setCompletionError('Failed to complete verification.')
-        } finally {
-          setCompleting(false)
-        }
-      }
-    }
-    finalize()
-  }, [step, documentData, faceMatchData, livenessData, verificationRecord, completing])
-
-  const computedResult = verificationRecord || {
+  const computedResult: VerificationRecord = verificationRecord ?? {
     verified: false,
     confidence: 0,
     userName: documentData?.name || 'Unknown',
-    documentType: documentData?.documentType || 'ID Document',
     documentNumber: documentData?.documentNumber || documentData?.idNumber,
-    verificationId: undefined,
     livenessConfidence: livenessData?.confidence,
-    matchSimilarity: faceMatchData?.similarity,
+    documentConfidence: documentData?.confidence,
   }
 
   const steps = [
@@ -142,8 +76,6 @@ export default function VerifyPage() {
     <VerificationSuccess
       key="success"
       result={computedResult}
-      loading={completing}
-      error={completionError}
     />,
   ]
 

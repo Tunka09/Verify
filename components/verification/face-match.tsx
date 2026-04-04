@@ -2,25 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, Loader2, Upload, ArrowRight, RefreshCw, CheckCircle, XCircle, Fingerprint } from 'lucide-react'
+import { Camera, Loader2, ArrowRight, RefreshCw, CheckCircle, XCircle, Fingerprint } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { matchFaces } from '@/lib/verification-service'
 import type { Easing } from 'framer-motion'
+import type { FaceMatchVerifyResult } from '@/types/verification'
 
 interface FaceMatchProps {
   idImage?: string
-  onComplete: (selfie: string, result: FaceMatchResult) => void
-}
-
-interface FaceMatchResult {
-  success?: boolean
-  isMatch?: boolean
-  match?: boolean
-  confidence?: number
-  similarity?: number
-  match_percentage?: number
-  id_face_quality?: number
-  selfie_quality?: number
+  onComplete: (selfie: string, result: FaceMatchVerifyResult) => void
 }
 
 const containerVariants = {
@@ -38,33 +28,31 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { 
-      duration: 0.5, 
+    transition: {
+      duration: 0.5,
       ease: [0.25, 0.46, 0.45, 0.94] as Easing
     },
   },
 }
 
 // Image card component
-function ImageCard({ 
-  label, 
-  image, 
+function ImageCard({
+  label,
+  image,
   color,
   placeholder,
-  onUpload
-}: { 
+}: {
   label: string
   image?: string | null
   color: string
   placeholder?: React.ReactNode
-  onUpload?: (file: File) => void
 }) {
   return (
     <div>
       <div className={`${color} px-3 py-1 border-3 border-foreground border-b-0 inline-block`}>
         <span className="text-xs font-black uppercase tracking-wider">{label}</span>
       </div>
-      <div 
+      <div
         className="relative aspect-square border-3 border-foreground bg-white overflow-hidden"
         style={{ boxShadow: '6px 6px 0px var(--foreground)' }}
       >
@@ -82,30 +70,7 @@ function ImageCard({
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted">
-            {onUpload ? (
-              <>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) onUpload(file)
-                  }}
-                  className="hidden"
-                  id="selfie-upload"
-                />
-                <label 
-                  htmlFor="selfie-upload" 
-                  className="cursor-pointer w-full h-full flex flex-col items-center justify-center hover:bg-[#c6f135]/30 transition-colors"
-                >
-                  <Upload className="w-10 h-10 mb-3 text-foreground/50" strokeWidth={2} />
-                  <p className="font-bold text-sm uppercase">Upload Photo</p>
-                  <p className="text-xs text-muted-foreground mt-1">or drag & drop</p>
-                </label>
-              </>
-            ) : (
-              placeholder
-            )}
+            {placeholder}
           </div>
         )}
       </div>
@@ -114,8 +79,7 @@ function ImageCard({
 }
 
 // Match result display
-function MatchResult({ result }: { result: FaceMatchResult }) {
-  const isMatch = result.isMatch || result.match
+function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyResult; onRetake: () => void; onProceed: () => void }) {
   const confidence = result.confidence || 0
   const passed = confidence >= 60
 
@@ -144,7 +108,7 @@ function MatchResult({ result }: { result: FaceMatchResult }) {
       </div>
 
       {/* Confidence bar */}
-      <div className="bg-foreground/10 p-4 border-2 border-foreground">
+      <div className="bg-foreground/10 p-4 border-2 border-foreground mb-4">
         <div className="flex justify-between mb-2">
           <span className={`font-bold text-sm uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
             Match Confidence
@@ -171,8 +135,29 @@ function MatchResult({ result }: { result: FaceMatchResult }) {
       </div>
 
       {result.similarity !== undefined && (
-        <div className={`mt-3 text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
+        <div className={`mb-4 text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
           Face Distance: <span className="font-mono font-bold">{(1 - result.similarity).toFixed(4)}</span>
+        </div>
+      )}
+
+      {/* On failure: offer retake or proceed anyway */}
+      {!passed && (
+        <div className="flex gap-3 mt-2">
+          <Button
+            onClick={onRetake}
+            className="flex-1 bg-white text-[#ff6b6b] hover:bg-white/90 border-2 border-foreground font-bold uppercase"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retake
+          </Button>
+          <Button
+            onClick={onProceed}
+            variant="outline"
+            className="flex-1 bg-transparent text-white border-2 border-white hover:bg-white/10 font-bold uppercase"
+          >
+            Proceed Anyway
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       )}
     </motion.div>
@@ -183,7 +168,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const [selfie, setSelfie] = useState<string | null>(null)
   const [matching, setMatching] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [matchResult, setMatchResult] = useState<FaceMatchResult | null>(null)
+  const [matchResult, setMatchResult] = useState<FaceMatchVerifyResult | null>(null)
   const [camError, setCamError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -200,7 +185,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     return () => { streamRef.current?.getTracks().forEach((t) => t.stop()) }
   }, [])
 
-  // reassign stream to video element when it re-mounts after retake
+  // Reassign stream to video element when it re-mounts after retake
   useEffect(() => {
     if (!selfie && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current
@@ -230,18 +215,22 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     setError(null)
     try {
       const response = await matchFaces(idImage, selfie)
-      
-      const result: FaceMatchResult = {
+
+      const result: FaceMatchVerifyResult = {
         success: response.success,
         isMatch: response.isMatch,
         match: response.isMatch,
         confidence: response.confidence,
         similarity: response.similarity,
-        match_percentage: response.confidence
+        match_percentage: response.confidence,
       }
-      
+
       setMatchResult(result)
-      onComplete(selfie, result)
+
+      // Only auto-advance when confidence passes the threshold
+      if ((result.confidence || 0) >= 60) {
+        onComplete(selfie, result)
+      }
     } catch (err) {
       console.error('Face match failed', err)
       const message = err instanceof Error ? err.message : 'Face matching failed. Please try again.'
@@ -272,7 +261,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
       >
         {/* Header */}
         <motion.div variants={itemVariants} className="text-center mb-8">
-          <motion.span 
+          <motion.span
             className="inline-flex items-center gap-2 bg-[#ff6b9d] text-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] mb-6"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -286,7 +275,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
             FACE <span className="text-[#4ecdc4]">MATCH</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Upload a selfie to compare with your ID document photo
+            Take a selfie to compare with your ID document photo
           </p>
         </motion.div>
 
@@ -302,7 +291,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
               </div>
             }
           />
-          
+
           {/* Selfie: live camera or captured photo */}
           <div>
             <div className="bg-[#ff6b9d] px-3 py-1 border-3 border-foreground border-b-0 inline-block">
@@ -347,7 +336,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
         </motion.div>
 
         {/* VS indicator */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="flex justify-center mb-8"
         >
@@ -401,8 +390,14 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
             </motion.div>
           )}
 
-          {/* Match result */}
-          {matchResult && <MatchResult result={matchResult} />}
+          {/* Match result — blocks auto-advance on failure */}
+          {matchResult && (
+            <MatchResult
+              result={matchResult}
+              onRetake={resetSelfie}
+              onProceed={() => onComplete(selfie!, matchResult)}
+            />
+          )}
         </motion.div>
 
         {/* Tips */}
