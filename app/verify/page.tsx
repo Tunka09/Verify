@@ -1,6 +1,8 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import IDVerificationFlow from '@/components/verification/id-verification-flow'
 import LivenessDetection from '@/components/verification/liveness-detection'
 import FaceMatch from '@/components/verification/face-match'
@@ -81,6 +83,17 @@ export default function VerifyPage() {
 
   return (
     <main className="min-h-screen bg-background">
+      {step === 0 && (
+        <div className="fixed top-4 left-4 z-50">
+          <Link
+            href="/choose-method"
+            className="inline-flex items-center gap-2 bg-background border-3 border-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider shadow-[4px_4px_0px_var(--foreground)] hover:shadow-[2px_2px_0px_var(--foreground)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Link>
+        </div>
+      )}
       {steps[step]}
     </main>
   )

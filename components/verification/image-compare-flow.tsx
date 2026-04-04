@@ -4,8 +4,9 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload, Camera, Loader2, CheckCircle, XCircle,
-  ArrowRight, RefreshCw, X, AlertCircle, ImageIcon
+  ArrowRight, RefreshCw, X, AlertCircle, ImageIcon, ArrowLeft
 } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { matchFaces } from '@/lib/verification-service'
 import type { Easing } from 'framer-motion'
@@ -319,6 +320,15 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
   return (
     <div className="min-h-screen bg-background px-4 py-8 md:py-12">
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-30" />
+      <div className="fixed top-4 left-4 z-50">
+        <Link
+          href="/choose-method"
+          className="inline-flex items-center gap-2 bg-background border-3 border-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider shadow-[4px_4px_0px_var(--foreground)] hover:shadow-[2px_2px_0px_var(--foreground)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Link>
+      </div>
 
       <motion.div
         className="max-w-3xl mx-auto relative z-10"
