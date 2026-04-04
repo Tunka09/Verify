@@ -177,7 +177,7 @@ export default function HeroSection() {
             variants={itemVariants}
             className="flex flex-col sm:flex-row gap-4 mb-16"
           >
-            <Link href="/verify">
+            <Link href="/choose-method">
               <Button
                 size="lg"
                 className="neo-btn bg-[#3b82f6] text-white hover:bg-[#2563eb] px-8 py-6 text-base gap-3"

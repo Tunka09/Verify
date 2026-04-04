@@ -6,8 +6,87 @@ interface DocumentExtractionRequest {
 }
 
 /**
+ * Parse Mongolian national ID OCR text into structured fields.
+ * Front side: family name, surname, given name, gender, date of birth, registration number
+ * Back side: date of issue, date of expiry
+ */
+function parseMongolianID(rawText: string, side: 'front' | 'back') {
+  const lines = rawText.split('\n').map((l: string) => l.trim()).filter(Boolean)
+  const text = lines.join('\n')
+
+  if (side === 'back') {
+    // Date of issue and expiry from back side
+    const datePattern = /(\d{4}[\/\.\-]\d{2}[\/\.\-]\d{2})/g
+    const dates = text.match(datePattern) || []
+
+    const issueMatch = text.match(/(?:олгосон|issued?|issue\s*date)[^\d]*(\d{4}[\/\.\-]\d{2}[\/\.\-]\d{2})/i)
+    const expiryMatch = text.match(/(?:дуусах|expir[yed]+|valid\s*until)[^\d]*(\d{4}[\/\.\-]\d{2}[\/\.\-]\d{2})/i)
+
+    return {
+      dateOfIssue: issueMatch?.[1] || dates[0] || undefined,
+      expiry: expiryMatch?.[1] || dates[1] || undefined,
+      dateOfExpiry: expiryMatch?.[1] || dates[1] || undefined,
+    }
+  }
+
+  // Front side parsing
+  // Registration number: 2 Cyrillic or Latin letters + 8 digits (e.g. АА12345678 or AA12345678)
+  const regNumMatch = text.match(/([А-ЯӨҮЁа-яөүёA-Za-z]{2}\d{8})/)
+  const registrationNumber = regNumMatch?.[1] || undefined
+
+  // Date of birth: YYYY/MM/DD or YYYY.MM.DD
+  const dobMatch = text.match(/(?:төрсөн|born|birth)[^\d]*(\d{4}[\/\.\-]\d{2}[\/\.\-]\d{2})/i)
+    || text.match(/(\d{4}[\/\.\-]\d{2}[\/\.\-]\d{2})/)
+  const dateOfBirth = dobMatch?.[1] || undefined
+
+  // Gender
+  const genderMatch = text.match(/(?:хүйс|gender|sex)[^\w]*(М|Э|M|F|MALE|FEMALE|ЭР|ЭМ)/i)
+  let gender: string | undefined
+  if (genderMatch) {
+    const raw = genderMatch[1].toUpperCase()
+    if (raw === 'М' || raw === 'M' || raw === 'ЭР' || raw === 'MALE') gender = 'Male'
+    else if (raw === 'Э' || raw === 'F' || raw === 'ЭМ' || raw === 'FEMALE') gender = 'Female'
+    else gender = raw
+  }
+
+  // Family name (овог)
+  const familyNameMatch = text.match(/(?:овог|family\s*name)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
+  const familyName = familyNameMatch?.[1]?.trim() || undefined
+
+  // Surname / father's name (эцгийн нэр)
+  const surnameMatch = text.match(/(?:эцгийн|surname|father)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
+  const surname = surnameMatch?.[1]?.trim() || undefined
+
+  // Given name (өөрийн нэр / нэр)
+  const givenNameMatch = text.match(/(?:өөрийн нэр|нэр|given\s*name|first\s*name)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
+  const givenName = givenNameMatch?.[1]?.trim() || undefined
+
+  // Fallback: try to find a name-like line (capitalized words, 2+ words)
+  const nameLine = !surname && !givenName
+    ? lines.find((l: string) =>
+        /^[A-ZА-ЯӨҮЁ][A-ZА-ЯӨҮЁa-zа-яөүё\s]{3,}$/.test(l) && l.split(/\s+/).length >= 2
+      )
+    : undefined
+
+  const name = surname && givenName
+    ? `${surname} ${givenName}`
+    : nameLine || 'Unknown'
+
+  return {
+    name,
+    familyName,
+    surname,
+    givenName,
+    gender,
+    registrationNumber,
+    idNumber: registrationNumber || `MN${Math.floor(10000000 + Math.random() * 90000000)}`,
+    dateOfBirth,
+  }
+}
+
+/**
  * POST /api/verify/extract-document
- * Proxies document extraction to the Python backend.
+ * Proxies document extraction to the Python backend, or runs OCR via OCR.space.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +99,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const side = body.side || 'front'
     const backendBase = process.env.BACKEND_URL
 
     if (backendBase) {
@@ -32,7 +112,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           image_base64: body.imageBase64,
-          side: body.side || 'front',
+          side,
         }),
       })
 
@@ -49,44 +129,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data)
     }
 
-    // Only run OCR on front side
-    if (body.side === 'front') {
-      try {
-        const ocrRes = await fetch('https://api.ocr.space/parse/image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            apikey: 'helloworld',
-            base64Image: body.imageBase64,
-            language: 'eng',
-            isOverlayRequired: 'false',
-          }),
-        })
-        const ocrData = await ocrRes.json()
-        const rawText: string = ocrData?.ParsedResults?.[0]?.ParsedText || ''
+    // OCR via OCR.space
+    try {
+      const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          apikey: process.env.OCR_API_KEY || 'helloworld',
+          base64Image: body.imageBase64,
+          language: 'auto',
+          isOverlayRequired: 'false',
+          detectOrientation: 'true',
+          scale: 'true',
+          OCREngine: '2',
+        }),
+      })
 
-        // Try to find a name-like line (all caps or title case, 2+ words)
-        const lines = rawText.split('\n').map((l: string) => l.trim()).filter(Boolean)
-        const nameLine = lines.find((l: string) =>
-          /^[A-ZА-ЯӨҮЁ][A-ZА-ЯӨҮЁa-zа-яөүё\s]{3,}$/.test(l) && l.split(' ').length >= 2
-        )
+      const ocrData = await ocrRes.json()
+      const rawText: string = ocrData?.ParsedResults?.[0]?.ParsedText || ''
 
+      if (rawText) {
+        const parsed = parseMongolianID(rawText, side)
         return NextResponse.json({
-          name: nameLine || 'Unknown',
-          idNumber: 'MN' + Math.floor(10000000 + Math.random() * 90000000),
-          documentType: 'National ID',
-          confidence: nameLine ? 88.0 : 60.0,
+          ...parsed,
+          confidence: 85.0,
         })
-      } catch {
-        // OCR failed, fall through to mock
       }
+    } catch (ocrErr) {
+      console.error('OCR failed:', ocrErr)
     }
 
     // Fallback mock
+    if (side === 'back') {
+      return NextResponse.json({
+        dateOfIssue: undefined,
+        expiry: undefined,
+        dateOfExpiry: undefined,
+        confidence: 60.0,
+      })
+    }
+
     return NextResponse.json({
       name: 'Unknown',
       idNumber: 'MN' + Math.floor(10000000 + Math.random() * 90000000),
-      documentType: body.side === 'back' ? 'ID Back' : 'National ID',
+      registrationNumber: undefined,
+      documentType: 'National ID',
       confidence: 60.0,
     })
   } catch (error) {

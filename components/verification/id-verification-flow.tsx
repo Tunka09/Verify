@@ -14,9 +14,15 @@ interface IDVerificationFlowProps {
 
 interface ExtractedDocumentData {
   name?: string
+  familyName?: string
+  surname?: string
+  givenName?: string
+  gender?: string
   idNumber?: string
   documentNumber?: string
+  registrationNumber?: string
   dateOfBirth?: string
+  dateOfIssue?: string
   expiry?: string
   issuedCountry?: string
   documentType?: string
@@ -246,12 +252,18 @@ function UploadZone({
 
 // Extracted data display
 function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; onContinue: () => void }) {
+  const fullName = data.surname && data.givenName
+    ? `${data.surname} ${data.givenName}`
+    : data.name
+
   const fields = [
-    { label: 'Full Name', value: data.name },
+    { label: 'Full Name', value: fullName },
+    { label: 'Family Name', value: data.familyName },
+    { label: 'Gender', value: data.gender },
     { label: 'Date of Birth', value: data.dateOfBirth },
-    { label: 'Document Number', value: data.documentNumber },
-    { label: 'Expiry Date', value: data.expiry },
-    { label: 'Issued Country', value: data.issuedCountry },
+    { label: 'Registration Number', value: data.registrationNumber || data.documentNumber || data.idNumber },
+    { label: 'Date of Issue', value: data.dateOfIssue },
+    { label: 'Date of Expiry', value: data.expiry },
     { label: 'Confidence Score', value: data.confidence ? `${data.confidence.toFixed(1)}%` : undefined },
   ].filter(f => f.value)
 
@@ -363,14 +375,29 @@ export default function IDVerificationFlow({
         backResult = await extractDocument(backImage, 'back')
       }
 
+      const parsedBack = backResult?.data || backResult || {}
+
+      const surname = parsedFront.surname || ''
+      const givenName = parsedFront.givenName || ''
+      const fullName = surname && givenName
+        ? `${surname} ${givenName}`
+        : parsedFront.name
+
       const combined: ExtractedDocumentData = {
-        name: parsedFront.name,
-        idNumber: parsedFront.idNumber,
-        documentNumber: parsedFront.idNumber,
+        name: fullName,
+        familyName: parsedFront.familyName || undefined,
+        surname: surname || undefined,
+        givenName: givenName || undefined,
+        gender: parsedFront.gender || undefined,
+        idNumber: parsedFront.idNumber || parsedFront.registrationNumber,
+        documentNumber: parsedFront.idNumber || parsedFront.registrationNumber,
+        registrationNumber: parsedFront.registrationNumber || parsedFront.idNumber,
         confidence: parsedFront.confidence,
         dateOfBirth: parsedFront.dateOfBirth || undefined,
+        dateOfIssue: parsedBack.dateOfIssue || undefined,
+        expiry: parsedBack.expiry || parsedBack.dateOfExpiry || undefined,
         authenticity: parsedFront.confidence || 95,
-        backData: backResult?.data || backResult || undefined,
+        backData: parsedBack,
       }
 
       setExtractedData(combined)
