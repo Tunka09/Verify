@@ -43,7 +43,7 @@ export default function VerifyPage() {
       confidence: matchConfidence,
       userName: documentData?.name || 'Unknown',
       documentNumber: documentData?.idNumber || documentData?.documentNumber,
-      matchSimilarity: result.similarity,
+      matchSimilarity: result.similarity != null ? result.similarity * 100 : undefined,
       livenessConfidence: livenessData?.confidence,
       documentConfidence: documentData?.confidence,
       elapsedTime: `${(elapsedMs / 1000).toFixed(1)}s`,
