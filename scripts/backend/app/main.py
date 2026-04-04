@@ -188,7 +188,7 @@ def compare_faces(id_card_path, face_photo_path, tolerance=0.6):
     
     # Таарах хувийг тооцоолох (0-100%)
     # face_distance нь 0-1 хооронд, бага байх тусам ойр
-    match_percentage = max(0, (1 - face_distance) * 100)
+    match_percentage = max(0, (1 - face_distance) ** 0.5 * 100)
     
     # 4. Үр дүн харуулах
     print("\n" + "=" * 60)
@@ -309,7 +309,7 @@ async def face_match_api(
         
         # Таарах хувийг тооцоолох (0-100%)
         # face_distance нь 0-1 хооронд, бага байх тусам ойр
-        match_percentage = max(0, (1 - face_distance) * 100)
+        match_percentage = max(0, (1 - face_distance) ** 0.5 * 100)
         
         # 4. Үр дүн
         print("\n" + "=" * 60)
@@ -443,7 +443,7 @@ async def verify_face_match(request: FaceMatchRequest, _: bool = Depends(verify_
         face_distance = face_recognition.face_distance([id_encoding], selfie_encoding)[0]
         matches = face_recognition.compare_faces([id_encoding], selfie_encoding, tolerance=0.6)
         is_match = matches[0]
-        match_percentage = max(0, (1 - face_distance) * 100)
+        match_percentage = max(0, (1 - face_distance) ** 0.5 * 100)
         
         print(f"User-{hashlib.md5(request.idImage.encode()).hexdigest()[:8]}")
         print(f"ID-{hashlib.md5(request.idImage.encode()).hexdigest()[:8]}")
