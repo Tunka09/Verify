@@ -63,16 +63,10 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
   const givenNameMatch = text.match(/(?:өөрийн нэр|нэр|given\s*name|first\s*name)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
   const givenName = givenNameMatch?.[1]?.trim() || undefined
 
-  // Fallback: try to find a name-like line (capitalized words, 2+ words)
-  const nameLine = !surname && !givenName
-    ? lines.find((l: string) =>
-        /^[A-ZА-ЯӨҮЁ][A-ZА-ЯӨҮЁa-zа-яөүё\s]{3,}$/.test(l) && l.split(/\s+/).length >= 2
-      )
-    : undefined
-
+  // Only build name from labeled fields — never guess from arbitrary capitalized lines
   const name = surname && givenName
     ? `${surname} ${givenName}`
-    : nameLine || 'Unknown'
+    : givenName || surname || familyName || undefined
 
   return {
     name,
