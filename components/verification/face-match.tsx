@@ -61,7 +61,7 @@ function ImageCard({
             <img
               src={image}
               alt={label}
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover${label === 'ID Document' ? ' blur-sm' : ''}`}
             />
             <div className="absolute bottom-0 inset-x-0 bg-foreground/80 text-background py-2 px-3 flex items-center justify-center gap-2">
               <CheckCircle className="w-4 h-4" />
@@ -228,7 +228,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
       setMatchResult(result)
 
       // Only auto-advance when confidence passes the threshold
-      if ((result.confidence || 0) >= 60) {
+      if ((result.confidence || 0) >= 55) {
         onComplete(selfie, result)
       }
     } catch (err) {
@@ -268,7 +268,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
             transition={{ type: 'spring', stiffness: 200 }}
           >
             <Fingerprint className="w-4 h-4" />
-            Step 3 of 3
+            Step 2 of 2
           </motion.span>
 
           <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">

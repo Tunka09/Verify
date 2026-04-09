@@ -4,16 +4,14 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import IDVerificationFlow from '@/components/verification/id-verification-flow'
-import LivenessDetection from '@/components/verification/liveness-detection'
 import FaceMatch from '@/components/verification/face-match'
 import VerificationSuccess from '@/components/verification/verification-success'
-import type { ExtractedDocumentData, LivenessResult, FaceMatchVerifyResult, VerificationRecord } from '@/types/verification'
+import type { ExtractedDocumentData, FaceMatchVerifyResult, VerificationRecord } from '@/types/verification'
 
 export default function VerifyPage() {
   const [step, setStep] = useState(0)
   const [uploadedID, setUploadedID] = useState<{ front?: string; back?: string }>({})
   const [documentData, setDocumentData] = useState<ExtractedDocumentData | null>(null)
-  const [livenessData, setLivenessData] = useState<LivenessResult | null>(null)
   const [verificationRecord, setVerificationRecord] = useState<VerificationRecord | null>(null)
   const startTimeRef = useRef<number>(Date.now())
 
@@ -28,14 +26,9 @@ export default function VerifyPage() {
     setStep(1)
   }
 
-  const handleLivenessComplete = (result: LivenessResult) => {
-    setLivenessData(result)
-    setStep(2)
-  }
-
   const handleFaceMatchComplete = (_image: string, result: FaceMatchVerifyResult) => {
     const matchConfidence = result.confidence || result.match_percentage || 0
-    const isVerified = matchConfidence >= 60
+    const isVerified = matchConfidence >= 55
     const elapsedMs = Date.now() - startTimeRef.current
 
     setVerificationRecord({
@@ -44,11 +37,10 @@ export default function VerifyPage() {
       userName: documentData?.name || 'Unknown',
       documentNumber: documentData?.idNumber || documentData?.documentNumber,
       matchSimilarity: result.similarity != null ? result.similarity * 100 : undefined,
-      livenessConfidence: livenessData?.confidence,
       documentConfidence: documentData?.confidence,
       elapsedTime: `${(elapsedMs / 1000).toFixed(1)}s`,
     })
-    setStep(3)
+    setStep(2)
   }
 
   const computedResult: VerificationRecord = verificationRecord ?? {
@@ -56,7 +48,6 @@ export default function VerifyPage() {
     confidence: 0,
     userName: documentData?.name || 'Unknown',
     documentNumber: documentData?.documentNumber || documentData?.idNumber,
-    livenessConfidence: livenessData?.confidence,
     documentConfidence: documentData?.confidence,
   }
 
@@ -65,10 +56,6 @@ export default function VerifyPage() {
       key="id"
       onComplete={handleIDComplete}
       onUpload={handleIDUpload}
-    />,
-    <LivenessDetection
-      key="liveness"
-      onComplete={handleLivenessComplete}
     />,
     <FaceMatch
       key="face-match"
@@ -83,7 +70,7 @@ export default function VerifyPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {step < 3 && (
+      {step < 2 && (
         <div className="fixed top-4 left-4 z-50">
           {step === 0 ? (
             <Link
