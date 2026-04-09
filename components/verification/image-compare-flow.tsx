@@ -267,6 +267,7 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
   const [comparing, setComparing] = useState(false)
   const [result, setResult] = useState<CompareResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
 
   const handlePhotoUpload = (file: File) => {
     const reader = new FileReader()
@@ -315,6 +316,7 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
     setSelfieImage(null)
     setResult(null)
     setError(null)
+    setRetryKey(k => k + 1)
   }
 
   return (
@@ -399,6 +401,14 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
                       Look directly at the camera
                     </p>
                   </div>
+                  {/* Selfie tips */}
+                  <div className="mb-3 bg-[#ffd93d] border-2 border-foreground px-3 py-2 text-xs font-bold flex flex-wrap gap-x-3 gap-y-1">
+                    <span>Face the camera directly</span>
+                    <span>· No glasses or sunglasses</span>
+                    <span>· No mask or face covering</span>
+                    <span>· No hat or cap</span>
+                    <span>· No filters</span>
+                  </div>
                   {selfieImage ? (
                     <div>
                       <div
@@ -419,7 +429,7 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
                       </button>
                     </div>
                   ) : (
-                    <SelfieCapture onCapture={handleSelfieCapture} />
+                    <SelfieCapture key={retryKey} onCapture={handleSelfieCapture} />
                   )}
                 </motion.div>
               </div>

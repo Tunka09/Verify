@@ -284,7 +284,6 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
     { label: 'Family Name', value: data.familyName },
     { label: 'Gender', value: data.gender },
     { label: 'Date of Birth', value: data.dateOfBirth },
-    { label: 'Registration Number', value: data.registrationNumber || data.documentNumber || data.idNumber },
     { label: 'Date of Issue', value: data.dateOfIssue },
     { label: 'Date of Expiry', value: data.expiry },
     { label: 'Confidence Score', value: data.confidence ? `${data.confidence.toFixed(1)}%` : undefined },

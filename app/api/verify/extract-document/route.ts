@@ -61,21 +61,23 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
   // Checks same line first (e.g. "Овог / БОЛД"), then next line (e.g. "Овог\nБОЛД").
   // Capture group requires uppercase Cyrillic start — rejects label words like "family name".
   // Extract the Latin transliteration line after a label.
-  // Structure on Mongolian IDs: label line → Cyrillic line → Latin line
+  // Structure on Mongolian IDs: label line → Cyrillic line → Latin transliteration line
+  // We take the LAST pure-Latin line in the next 3 lines so that OCR misreads (e.g. AHAP)
+  // are skipped in favour of the real transliteration (e.g. ANAR).
   function extractName(labelPattern: string): string | undefined {
     const labelRe = new RegExp(labelPattern, 'i')
     for (let i = 0; i < lines.length; i++) {
       if (!labelRe.test(lines[i])) continue
-      // Look at the next few lines for the Latin transliteration
+      let lastLatin: string | undefined
       for (let j = i + 1; j <= i + 3 && j < lines.length; j++) {
         const line = lines[j]
         if (!line) continue
-        // Stop if we hit another label
-        if (/(?:овог|family|эцэг|surname|нэр|given|first|хүйс|sex|gender|төрсөн|birth|иргэний|civil)/i.test(line) && j > i + 1) break
-        // Take first line that is purely Latin letters (the transliteration)
-        if (/^[A-Za-z]+$/.test(line)) return line
+        // Stop if we hit another label (but not on the very first line after the label)
+        if (j > i + 1 && /(?:овог|family|эцэг|surname|нэр|given|first|хүйс|sex|gender|төрсөн|birth|иргэний|civil)/i.test(line)) break
+        // Track the last pure-Latin word line
+        if (/^[A-Za-z]+$/.test(line)) lastLatin = line
       }
-      break
+      return lastLatin
     }
     return undefined
   }
