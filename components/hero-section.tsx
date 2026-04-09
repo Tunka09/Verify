@@ -215,7 +215,7 @@ export default function HeroSection() {
                 className={`${feature.color} ${feature.textColor} px-4 py-2 font-bold text-sm border-2 border-foreground shadow-[3px_3px_0px_var(--foreground)]`}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.8 + i * 0.1, type: 'spring', stiffness: 200 }}
+                transition={{ default: { delay: 0.8 + i * 0.1, type: 'spring', stiffness: 200 }, y: { duration: 0.15, ease: 'easeOut' }, boxShadow: { duration: 0.15, ease: 'easeOut' } }}
                 whileHover={{ y: -3, boxShadow: '5px 5px 0px var(--foreground)', transition: { duration: 0.15, ease: 'easeOut' } }}
               >
                 {feature.label}
