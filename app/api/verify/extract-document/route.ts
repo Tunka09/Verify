@@ -57,10 +57,15 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
   // Checks same line first (e.g. "Овог / БОЛД"), then next line (e.g. "Овог\nБОЛД").
   // Capture group requires uppercase Cyrillic start — rejects label words like "family name".
   function extractName(labelPattern: string): string | undefined {
+    // Try Cyrillic on same line
     const sameLine = text.match(new RegExp(labelPattern + '[^\\n]*?([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
     if (sameLine?.[1]) return sameLine[1].trim()
-    const nextLine = text.match(new RegExp(labelPattern + '[^\\n]*\\n\\s*([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
-    return nextLine?.[1]?.trim()
+    // Try Cyrillic on next line
+    const nextLineCyr = text.match(new RegExp(labelPattern + '[^\\n]*\\n\\s*([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
+    if (nextLineCyr?.[1]) return nextLineCyr[1].trim()
+    // Fallback: OCR may misread Cyrillic as Latin (e.g. АНАР → AHAP), accept uppercase Latin word
+    const nextLineLat = text.match(new RegExp(labelPattern + '[^\\n]*\\n\\s*([A-Z]{2,})', 'i'))
+    return nextLineLat?.[1]?.trim()
   }
 
   // Family name (овог)
