@@ -83,15 +83,25 @@ export default function VerifyPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {step === 0 && (
+      {step < 3 && (
         <div className="fixed top-4 left-4 z-50">
-          <Link
-            href="/choose-method"
-            className="inline-flex items-center gap-2 bg-background border-3 border-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider shadow-[4px_4px_0px_var(--foreground)] hover:shadow-[2px_2px_0px_var(--foreground)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
+          {step === 0 ? (
+            <Link
+              href="/choose-method"
+              className="inline-flex items-center gap-2 bg-background border-3 border-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider shadow-[4px_4px_0px_var(--foreground)] hover:shadow-[2px_2px_0px_var(--foreground)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Link>
+          ) : (
+            <button
+              onClick={() => setStep(step - 1)}
+              className="inline-flex items-center gap-2 bg-background border-3 border-foreground px-4 py-2 font-bold text-sm uppercase tracking-wider shadow-[4px_4px_0px_var(--foreground)] hover:shadow-[2px_2px_0px_var(--foreground)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          )}
         </div>
       )}
       {steps[step]}

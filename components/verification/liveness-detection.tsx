@@ -321,10 +321,22 @@ export default function LivenessDetection({ onComplete }: LivenessDetectionProps
           </motion.div>
         )}
 
+        {/* Warning banner */}
+        <motion.div
+          variants={itemVariants}
+          className="mt-6 bg-[#ffd93d] border-2 border-foreground px-3 py-2 text-xs font-bold flex flex-wrap gap-x-3 gap-y-1"
+        >
+          <span>Face the camera directly</span>
+          <span>· No glasses or sunglasses</span>
+          <span>· No mask or face covering</span>
+          <span>· No hat or cap</span>
+          <span>· No filters</span>
+        </motion.div>
+
         {/* Tips */}
         <motion.div
           variants={itemVariants}
-          className="mt-8 grid grid-cols-3 gap-3"
+          className="mt-4 grid grid-cols-3 gap-3"
         >
           {[
             { label: 'Good Light', tip: 'Face a window' },

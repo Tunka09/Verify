@@ -286,7 +286,6 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
     { label: 'Date of Birth', value: data.dateOfBirth },
     { label: 'Date of Issue', value: data.dateOfIssue },
     { label: 'Date of Expiry', value: data.expiry },
-    { label: 'Confidence Score', value: data.confidence ? `${data.confidence.toFixed(1)}%` : undefined },
   ].filter(f => f.value)
 
   return (
@@ -323,23 +322,6 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
         ))}
       </div>
 
-      {/* Confidence bar */}
-      {data.confidence && (
-        <div className="mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-bold uppercase tracking-wider">Document Authenticity</span>
-            <span className="font-mono font-bold">{data.confidence.toFixed(1)}%</span>
-          </div>
-          <div className="h-4 bg-muted border-2 border-foreground overflow-hidden">
-            <motion.div
-              className="h-full bg-[#c6f135]"
-              initial={{ width: 0 }}
-              animate={{ width: `${data.confidence}%` }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-            />
-          </div>
-        </div>
-      )}
 
       <Button
         onClick={onContinue}
