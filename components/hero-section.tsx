@@ -216,7 +216,7 @@ export default function HeroSection() {
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.8 + i * 0.1, type: 'spring', stiffness: 200 }}
-                whileHover={{ y: -3, boxShadow: '5px 5px 0px var(--foreground)' }}
+                whileHover={{ y: -3, boxShadow: '5px 5px 0px var(--foreground)', transition: { duration: 0.15, ease: 'easeOut' } }}
               >
                 {feature.label}
               </motion.span>
