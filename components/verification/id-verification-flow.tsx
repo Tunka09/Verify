@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, FileText, Loader2, CheckCircle, Camera, ArrowRight, X, AlertCircle } from 'lucide-react'
+import { Upload, FileText, Loader2, CheckCircle, Camera, ArrowRight, X, AlertCircle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { extractDocument } from '@/lib/verification-service'
 import type { Easing } from 'framer-motion'
@@ -77,20 +77,41 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
   )
 }
 
+// Rotate a base64 image 90 degrees clockwise using canvas
+function rotateImage90(base64: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.height
+      canvas.height = img.width
+      const ctx = canvas.getContext('2d')!
+      ctx.translate(canvas.width / 2, canvas.height / 2)
+      ctx.rotate(Math.PI / 2)
+      ctx.drawImage(img, -img.width / 2, -img.height / 2)
+      resolve(canvas.toDataURL('image/jpeg', 0.92))
+    }
+    img.src = base64
+  })
+}
+
 // Upload zone component
-function UploadZone({ 
-  side, 
-  image, 
+function UploadZone({
+  side,
+  image,
   onUpload,
+  onRotate,
   isActive = false
-}: { 
+}: {
   side: 'front' | 'back'
   image: string | null
   onUpload: (file: File) => void
+  onRotate?: (rotated: string) => void
   isActive?: boolean
 }) {
   const [isDragging, setIsDragging] = useState(false)
   const [isBlurred, setIsBlurred] = useState(true) // Default: blurred for privacy
+  const [rotating, setRotating] = useState(false)
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -178,9 +199,9 @@ function UploadZone({
                 )}
               </div>
               
-              {/* Toggle blur button */}
+              {/* Toggle blur + rotate buttons */}
               <div className="flex items-center justify-between mt-4">
-                <motion.div 
+                <motion.div
                   className="flex items-center gap-2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -188,22 +209,42 @@ function UploadZone({
                   <CheckCircle className="w-5 h-5 text-foreground" strokeWidth={2.5} />
                   <span className="font-bold text-foreground">Uploaded</span>
                 </motion.div>
-                
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setIsBlurred(!isBlurred)
-                  }}
-                  className={`
-                    px-3 py-1 text-xs font-bold uppercase tracking-wider border-2 border-foreground
-                    transition-all duration-200
-                    ${isBlurred ? 'bg-muted hover:bg-foreground/10' : 'bg-[#ff6b6b] text-white hover:bg-[#ff5252]'}
-                  `}
-                >
-                  {isBlurred ? '👁 Харах' : '🔒 Нуух'}
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={rotating}
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (!image || !onRotate) return
+                      setRotating(true)
+                      const rotated = await rotateImage90(image)
+                      onRotate(rotated)
+                      setRotating(false)
+                    }}
+                    className="px-3 py-1 text-xs font-bold uppercase tracking-wider border-2 border-foreground bg-[#ffd93d] hover:bg-[#ffc600] transition-all duration-200 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <RotateCw className={`w-3 h-3 ${rotating ? 'animate-spin' : ''}`} />
+                    Rotate
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setIsBlurred(!isBlurred)
+                    }}
+                    className={`
+                      px-3 py-1 text-xs font-bold uppercase tracking-wider border-2 border-foreground
+                      transition-all duration-200
+                      ${isBlurred ? 'bg-muted hover:bg-foreground/10' : 'bg-[#ff6b6b] text-white hover:bg-[#ff5252]'}
+                    `}
+                  >
+                    {isBlurred ? '👁 Харах' : '🔒 Нуух'}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -440,12 +481,14 @@ export default function IDVerificationFlow({
                   side="front"
                   image={frontImage}
                   onUpload={(file) => handleImageUpload('front', file)}
+                  onRotate={(rotated) => { setFrontImage(rotated); onUpload(rotated) }}
                   isActive={!frontImage}
                 />
                 <UploadZone
                   side="back"
                   image={backImage}
                   onUpload={(file) => handleImageUpload('back', file)}
+                  onRotate={(rotated) => { setBackImage(rotated); onUpload(undefined, rotated) }}
                 />
               </div>
 
