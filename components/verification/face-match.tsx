@@ -81,7 +81,7 @@ function ImageCard({
 // Match result display
 function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyResult; onRetake: () => void; onProceed: () => void }) {
   const confidence = result.confidence || 0
-  const passed = confidence >= 60
+  const passed = confidence >= 55
 
   return (
     <motion.div
@@ -102,7 +102,7 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
             {passed ? 'Match Found!' : 'No Match'}
           </h3>
           <p className={`text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
-            {passed ? 'Faces successfully matched' : 'Confidence below 60% threshold'}
+            {passed ? 'Faces successfully matched' : 'Confidence below 55% threshold'}
           </p>
         </div>
       </div>
@@ -128,7 +128,7 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
         <div className="flex justify-between mt-2">
           <span className={`text-xs ${passed ? 'text-foreground/50' : 'text-white/50'}`}>0%</span>
           <span className={`text-xs font-bold ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
-            60% required
+            55% required
           </span>
           <span className={`text-xs ${passed ? 'text-foreground/50' : 'text-white/50'}`}>100%</span>
         </div>
