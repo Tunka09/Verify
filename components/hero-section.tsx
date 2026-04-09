@@ -132,7 +132,7 @@ export default function HeroSection() {
       <DecorativeShapes />
 
       {/* Main content */}
-      <div className="flex-1 flex items-center px-4 sm:px-6 lg:px-8 py-20">
+      <div className="flex-1 flex items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
         <motion.div
           className="max-w-7xl mx-auto w-full"
           variants={containerVariants}
@@ -175,23 +175,23 @@ export default function HeroSection() {
           {/* CTA Buttons */}
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 mb-16"
+            className="flex flex-col sm:flex-row gap-4 mb-8 sm:mb-16"
           >
-            <Link href="/choose-method">
+            <Link href="/choose-method" className="w-full sm:w-auto">
               <Button
                 size="lg"
-                className="neo-btn bg-[#3b82f6] text-white hover:bg-[#2563eb] px-8 py-6 text-base gap-3"
+                className="neo-btn w-full sm:w-auto bg-[#3b82f6] text-white hover:bg-[#2563eb] px-8 py-6 text-base gap-3"
               >
                 <Scan className="w-5 h-5" />
                 БАТАЛГААЖУУЛАХ
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <Link href="/documentation">
+            <Link href="/documentation" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 variant="outline"
-                className="neo-btn bg-background hover:bg-muted px-8 py-6 text-base"
+                className="neo-btn w-full sm:w-auto bg-background hover:bg-muted px-8 py-6 text-base"
               >
                 <Book className="w-5 h-5 mr-2" />
                 БАРИМТ БИЧИГ

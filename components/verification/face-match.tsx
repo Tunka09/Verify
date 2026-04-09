@@ -362,7 +362,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
         {/* Action buttons */}
         <motion.div variants={itemVariants} className="space-y-4">
           {selfie && !matchResult && (
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={resetSelfie}
                 variant="outline"

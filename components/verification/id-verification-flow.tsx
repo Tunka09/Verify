@@ -434,7 +434,7 @@ export default function IDVerificationFlow({
             transition={{ type: 'spring', stiffness: 200 }}
           >
             <FileText className="w-4 h-4" />
-            Step 1 of 2
+            1-р алхам / 2-аас
           </motion.span>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter mb-4">
@@ -528,7 +528,7 @@ export default function IDVerificationFlow({
         {/* Tips section */}
         <motion.div
           variants={itemVariants}
-          className="mt-12 grid md:grid-cols-3 gap-4"
+          className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3"
         >
           {[
             { title: 'Сайн Гэрэлтэй', desc: 'Тод, жигд гэрэлтэй байна уу' },
