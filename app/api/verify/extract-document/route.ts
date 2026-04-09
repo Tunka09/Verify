@@ -33,7 +33,9 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
 
   // Front side parsing
   // Registration number: 2 Cyrillic or Latin letters + 8 digits (e.g. АА12345678 or AA12345678)
-  const regNumMatch = text.match(/([А-ЯӨҮЁа-яөүёA-Za-z]{2}\d{8})/)
+  const regNumMatch =
+    text.match(/([А-ЯӨҮЁа-яөүёA-Za-z]{2}\d{8})/) ||
+    text.match(/(?:буртгэлийн дугаар|civil identification|identification number)[^\d]*(\d{10,12})/i)
   const registrationNumber = regNumMatch?.[1] || undefined
 
   // Date of birth: YYYY/MM/DD or YYYY.MM.DD
@@ -64,11 +66,11 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
   // Family name (овог)
   const familyName = extractName('(?:овог|family\\s*name)')
 
-  // Surname / father's name (эцгийн нэр)
-  const surname = extractName('(?:эцгийн\\s*нэр|эцгийн|surname|father\\s*name)')
+  // Surname / father's name — handles "Эцэг/эх/-ийн нэр" and "Эцгийн нэр" variants
+  const surname = extractName('(?:эцэг(?:/эх)?(?:/-ийн)?\\s*нэр|эцгийн\\s*нэр|эцгийн|surname|father\\s*name)')
 
-  // Given name (өөрийн нэр / нэр) — match "өөрийн нэр" or standalone "нэр" (not "эцгийн нэр")
-  const givenName = extractName('(?:өөрийн\\s*нэр|(?<!эцгийн\\s*)нэр|given\\s*name|first\\s*name)')
+  // Given name — do NOT use standalone "нэр" as it matches "Эцэг/эх/-ийн нэр" too
+  const givenName = extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)')
 
   // Only build name from labeled fields — never guess from arbitrary capitalized lines
   const name = surname && givenName
