@@ -124,7 +124,9 @@ export async function POST(request: NextRequest) {
       const rawText: string = ocrData?.ParsedResults?.[0]?.ParsedText || ''
 
       if (rawText) {
+        console.log('OCR RAW TEXT:', JSON.stringify(rawText))
         const parsed = parseMongolianID(rawText, side)
+        console.log('PARSED:', JSON.stringify(parsed))
         return NextResponse.json({
           ...parsed,
           confidence: 85.0,
