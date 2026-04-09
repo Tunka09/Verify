@@ -96,34 +96,6 @@ export async function POST(request: NextRequest) {
     }
 
     const side = body.side || 'front'
-    const backendBase = process.env.BACKEND_URL
-
-    if (backendBase) {
-      const apiKey = process.env.API_KEY || ''
-      const response = await fetch(`${backendBase}/verify/extract-document`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
-        body: JSON.stringify({
-          image_base64: body.imageBase64,
-          side,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Backend extract error:', response.status, errorText)
-        return NextResponse.json(
-          { error: 'Document extraction failed', detail: errorText || undefined },
-          { status: 502 }
-        )
-      }
-
-      const data = await response.json()
-      return NextResponse.json(data)
-    }
 
     // OCR via OCR.space
     try {
