@@ -12,6 +12,10 @@ interface DocumentExtractionRequest {
  * Front side: family name, surname, given name, gender, date of birth, registration number
  * Back side: date of issue, date of expiry
  */
+function toTitleCase(str: string): string {
+  return str.toLowerCase().replace(/(?:^|\s)\S/g, c => c.toUpperCase())
+}
+
 function parseMongolianID(rawText: string, side: 'front' | 'back') {
   const lines = rawText.split('\n').map((l: string) => l.trim()).filter(Boolean)
   const text = lines.join('\n')
@@ -68,14 +72,16 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
     return nextLineLat?.[1]?.trim()
   }
 
+  const tc = (s: string | undefined) => s ? s.split(' ').map(toTitleCase).join(' ') : undefined
+
   // Family name (овог)
-  const familyName = extractName('(?:овог|family\\s*name)')
+  const familyName = tc(extractName('(?:овог|family\\s*name)'))
 
   // Surname / father's name — handles "Эцэг/эх/-ийн нэр" and "Эцгийн нэр" variants
-  const surname = extractName('(?:эцэг(?:/эх)?(?:/-ийн)?\\s*нэр|эцгийн\\s*нэр|эцгийн|surname|father\\s*name)')
+  const surname = tc(extractName('(?:эцэг(?:/эх)?(?:/-ийн)?\\s*нэр|эцгийн\\s*нэр|эцгийн|surname|father\\s*name)'))
 
   // Given name — do NOT use standalone "нэр" as it matches "Эцэг/эх/-ийн нэр" too
-  const givenName = extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)')
+  const givenName = tc(extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)'))
 
   // Only build name from labeled fields — never guess from arbitrary capitalized lines
   const name = surname && givenName
