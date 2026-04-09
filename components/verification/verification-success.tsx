@@ -348,7 +348,7 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
               {confidence >= 55 ? (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  Тэнцлэа (55%+)
+                  Тэнцлээ (55%+)
                 </>
               ) : (
                 <>
@@ -388,25 +388,25 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
         >
           <Button
             onClick={handleDownload}
-            className="flex-1 w-full sm:w-auto bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
+            className="flex-1 w-full sm:w-auto bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-normal whitespace-nowrap py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
           >
-            <Download className="w-5 h-5 mr-2" />
+            <Download className="w-5 h-5 mr-2 flex-shrink-0" />
             Гэрчилгээ Татах
           </Button>
           <Button
             onClick={handleShare}
             variant="outline"
-            className="flex-1 w-full sm:w-auto bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
+            className="flex-1 w-full sm:w-auto bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-normal whitespace-nowrap py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
           >
-            <Share2 className="w-5 h-5 mr-2" />
+            <Share2 className="w-5 h-5 mr-2 flex-shrink-0" />
             {shareLabel}
           </Button>
           <Link href="/" className="flex-1 w-full sm:w-auto">
             <Button
               variant="outline"
-              className="w-full bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
+              className="w-full bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-normal whitespace-nowrap py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
             >
-              <Home className="w-5 h-5 mr-2" />
+              <Home className="w-5 h-5 mr-2 flex-shrink-0" />
               Нүүр хуудас
             </Button>
           </Link>

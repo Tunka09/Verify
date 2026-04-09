@@ -302,7 +302,7 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
         </div>
         <div>
           <h3 className="text-xl font-black uppercase tracking-tight">Баримт Уншигдлаа</h3>
-          <p className="text-sm text-muted-foreground font-medium">Мэдээлэл амжилттай ялгаалаа</p>
+          <p className="text-sm text-muted-foreground font-medium">Мэдээлэл амжилттай уншигдлаа</p>
         </div>
       </div>
 
