@@ -132,24 +132,30 @@ function SelfieCapture({
 
   useEffect(() => {
     let stream: MediaStream | null = null
+    let cancelled = false
 
     const startCamera = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
         })
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           setStreaming(true)
         }
       } catch {
-        setError('Could not access camera. Please allow camera access.')
+        if (!cancelled) setError('Could not access camera. Please allow camera access.')
       }
     }
 
     startCamera()
 
     return () => {
+      cancelled = true
       stream?.getTracks().forEach((t) => t.stop())
     }
   }, [])
