@@ -51,17 +51,24 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
     else gender = raw
   }
 
+  // Helper: extract Cyrillic name value after a label.
+  // Checks same line first (e.g. "Овог / БОЛД"), then next line (e.g. "Овог\nБОЛД").
+  // Capture group requires uppercase Cyrillic start — rejects label words like "family name".
+  function extractName(labelPattern: string): string | undefined {
+    const sameLine = text.match(new RegExp(labelPattern + '[^\\n]*?([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
+    if (sameLine?.[1]) return sameLine[1].trim()
+    const nextLine = text.match(new RegExp(labelPattern + '[^\\n]*\\n\\s*([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
+    return nextLine?.[1]?.trim()
+  }
+
   // Family name (овог)
-  const familyNameMatch = text.match(/(?:овог|family\s*name)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
-  const familyName = familyNameMatch?.[1]?.trim() || undefined
+  const familyName = extractName('(?:овог|family\\s*name)')
 
   // Surname / father's name (эцгийн нэр)
-  const surnameMatch = text.match(/(?:эцгийн|surname|father)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
-  const surname = surnameMatch?.[1]?.trim() || undefined
+  const surname = extractName('(?:эцгийн\\s*нэр|эцгийн|surname|father\\s*name)')
 
   // Given name (өөрийн нэр / нэр)
-  const givenNameMatch = text.match(/(?:өөрийн нэр|нэр|given\s*name|first\s*name)[^\w\n]*([А-ЯӨҮЁа-яөүё A-Za-z]+)/i)
-  const givenName = givenNameMatch?.[1]?.trim() || undefined
+  const givenName = extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)')
 
   // Only build name from labeled fields — never guess from arbitrary capitalized lines
   const name = surname && givenName
