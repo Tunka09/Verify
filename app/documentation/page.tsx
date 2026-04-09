@@ -46,12 +46,12 @@ const sections = [
     titleEn: 'Goals',
     icon: Target,
     color: 'bg-[#06b6d4]',
-    content: `Веб орчинд хэрэглэгчийн иргэний үнэмлэх (эсвэл паспорт) болон селфи зураг дээр тулгуурлан тухайн хүн мөн эсэхийг хиймэл оюун (AI) аргаар үнэлэх, мөн хуурилтаас сэргийлэх зорилгоор liveness шалгалтын урсгалыг дэмжих иж бүрэн систем боловсруулах.`,
+    content: `Веб орчинд хэрэглэгчийн иргэний үнэмлэх (эсвэл паспорт) болон селфи зураг дээр тулгуурлан тухайн хүн мөн эсэхийг хиймэл оюун (AI) аргаар үнэлэх иж бүрэн систем боловсруулах.`,
     subItems: [
       'Иргэний үнэмлэх/паспортын зураг оруулах урсгал боловсруулах',
+      'OCR ашиглан баримтаас нэр болон бусад мэдээллийг автоматаар ялгах',
       'Селфи зураг авах/оруулах алхам хэрэгжүүлэх',
       'Нүүр илрүүлэлт, embedding үүсгэх, тааралтыг хувь болгон тооцох API',
-      'Амьд эсэхийг шалгах (liveness) UX урсгал',
       'Монгол хэл дээр ойлгомжтой интерфэйс',
       'Тестлэл, логжилт, алдааны боловсруулалт',
     ],
@@ -121,8 +121,9 @@ const sections = [
       { tech: 'Next.js', version: '15.0.3', purpose: 'React framework, App Router' },
       { tech: 'React', version: '19.0.0', purpose: 'UI component library' },
       { tech: 'TypeScript', version: '5.x', purpose: 'Type safety' },
-      { tech: 'Tailwind CSS', version: '4.x', purpose: 'Utility-first CSS' },
+      { tech: 'Tailwind CSS', version: '4.x', purpose: 'Utility-first CSS (Neobrutalism design)' },
       { tech: 'Framer Motion', version: '12.x', purpose: 'Animation library' },
+      { tech: 'OCR.space API', version: 'v1', purpose: 'Document text extraction (Mongolian ID)' },
     ],
     backend: [
       { tech: 'Python', version: '3.11+', purpose: 'Backend programming language' },
@@ -143,8 +144,8 @@ const sections = [
       { id: 'FR-01', desc: 'Хэрэглэгч иргэний үнэмлэхийн урд болон арын зургийг оруулах боломжтой байх' },
       { id: 'FR-02', desc: 'Хэрэглэгч камераар селфи авах эсвэл файлаас сонгох сонголттой байх' },
       { id: 'FR-03', desc: 'Систем зураг дээр нүүрийн шалгалт хийж, match хувь болон шийдвэр буцаах' },
-      { id: 'FR-04', desc: 'Liveness урсгалыг алхамчилсан даалгавраар харуулах' },
-      { id: 'FR-05', desc: 'Алдааны нөхцөл бүрт Монгол хэл дээрх мессеж буцаах' },
+      { id: 'FR-04', desc: 'OCR ашиглан иргэний үнэмлэхээс нэр болон бусад мэдээллийг автоматаар ялгаж авах' },
+      { id: 'FR-05', desc: 'Error messages must be in English and include specific failure reason: NO_FACE_DETECTED, MULTIPLE_FACES_FOUND, LOW_CONFIDENCE (below 55%), INVALID_IMAGE, CAMERA_ACCESS_DENIED, OCR_EXTRACTION_FAILED' },
     ],
     nonFunctional: [
       { id: 'NFR-01', title: 'Гүйцэтгэл', desc: 'Нэг verification хүсэлт 2-5 секундэд дуусах' },
@@ -164,7 +165,7 @@ const sections = [
       { layer: 'Application Layer', tech: 'Next.js API Routes (proxy)', description: 'API Gateway' },
       { layer: 'Service Layer', tech: 'Python FastAPI, face_recognition', description: 'AI Backend' },
     ],
-    flow: ['Landing Page', 'Verify Page', 'ID Upload', 'Liveness', 'Face Match', 'Result'],
+    flow: ['Landing Page', 'Verify Page', 'ID Upload', 'Face Match', 'Result'],
   },
   {
     id: 'implementation',
@@ -177,14 +178,12 @@ const sections = [
 ├── app/
 │   ├── api/verify/
 │   │   ├── face-match/route.ts
-│   │   ├── extract-document/route.ts
-│   │   └── liveness-check/route.ts
+│   │   └── extract-document/route.ts
 │   ├── verify/page.tsx
 │   └── page.tsx
 ├── components/
 │   └── verification/
 │       ├── id-verification-flow.tsx
-│       ├── liveness-detection.tsx
 │       ├── face-match.tsx
 │       └── verification-success.tsx
 ├── lib/
@@ -234,13 +233,13 @@ const sections = [
     achievements: [
       'Full-stack систем: Next.js frontend + Python FastAPI backend',
       'AI Face Match: face_recognition + dlib ашиглан 128-dim embedding',
-      '4-алхамт UX: ID Upload → Liveness → Face Match → Result',
+      'OCR баримт таних: OCR.space API ашиглан Монгол иргэний үнэмлэхээс мэдээлэл ялгах',
+      '3-алхамт UX: ID Upload → Face Match → Result',
       'Монгол интерфэйс: Хэрэглэгчдэд ойлгомжтой заавар',
-      'Error handling: NO_FACE, MULTIPLE_FACES бүх алдааны боловсруулалт',
+      'Error handling: NO_FACE_DETECTED, MULTIPLE_FACES_FOUND, LOW_CONFIDENCE, INVALID_IMAGE',
     ],
     improvements: [
-      'Liveness detection - MediaPipe нэмэх',
-      'OCR нэмж баримтаас мэдээлэл автомат уншиx',
+      'Liveness detection нэмэх (MediaPipe эсвэл хөдөлгөөн илрүүлэлт)',
       'Docker containerization',
       'Rate limiting, JWT authentication',
     ],
