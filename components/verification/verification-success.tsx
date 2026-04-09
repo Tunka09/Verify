@@ -311,7 +311,7 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
           >
             {isVerified
               ? `Identity verified with ${confidence.toFixed(1)}% confidence`
-              : `Verification failed. Minimum 60% required, got ${confidence.toFixed(1)}%`
+              : `Verification failed. Minimum 55% required, got ${confidence.toFixed(1)}%`
             }
           </motion.p>
         </motion.div>
@@ -372,22 +372,22 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
             <div className="flex justify-center mb-8">
               <ProgressRing
                 progress={confidence}
-                color={confidence >= 60 ? '#c6f135' : '#ff6b6b'}
+                color={confidence >= 55 ? '#c6f135' : '#ff6b6b'}
               />
             </div>
 
             <div className={`inline-flex items-center gap-2 px-4 py-2 font-bold text-sm uppercase tracking-wider border-2 border-foreground mb-6 ${
-              confidence >= 60 ? 'bg-[#c6f135]' : 'bg-[#ff6b6b] text-white'
+              confidence >= 55 ? 'bg-[#c6f135]' : 'bg-[#ff6b6b] text-white'
             }`}>
-              {confidence >= 60 ? (
+              {confidence >= 55 ? (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  Passed (60%+ required)
+                  Passed (55%+ required)
                 </>
               ) : (
                 <>
                   <XCircle className="w-4 h-4" />
-                  Failed (60%+ required)
+                  Failed (55%+ required)
                 </>
               )}
             </div>

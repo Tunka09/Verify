@@ -213,8 +213,8 @@ const sections = [
     icon: TestTube,
     color: 'bg-[#3b82f6]',
     testCases: [
-      { case: 'Ижил хүн', expected: 'Match > 60%', actual: '87.3%', status: 'passed' },
-      { case: 'Өөр хүн', expected: 'Match < 60%', actual: '23.1%', status: 'passed' },
+      { case: 'Ижил хүн', expected: 'Match > 55%', actual: '87.3%', status: 'passed' },
+      { case: 'Өөр хүн', expected: 'Match < 55%', actual: '23.1%', status: 'passed' },
       { case: 'Нүүр илрээгүй (ID)', expected: 'NO_FACE error', actual: 'NO_FACE error', status: 'passed' },
       { case: 'Олон нүүр', expected: 'MULTI error', actual: 'MULTI error', status: 'passed' },
       { case: 'Эвдэрсэн файл', expected: 'INVALID error', actual: 'INVALID error', status: 'passed' },
