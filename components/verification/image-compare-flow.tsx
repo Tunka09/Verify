@@ -208,7 +208,7 @@ function ResultCard({
   result: CompareResult
   onRetry: () => void
 }) {
-  const isMatch = result.isMatch && result.confidence >= 60
+  const isMatch = result.isMatch && result.confidence >= 55
   const confidence = result.confidence
 
   return (
@@ -297,7 +297,7 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
       const res = await matchFaces(referenceImage, selfieImage)
       const confidence = res.confidence || res.match_percentage || 0
       const compareResult: CompareResult = {
-        isMatch: res.isMatch ?? res.is_match ?? confidence >= 60,
+        isMatch: res.isMatch ?? res.is_match ?? confidence >= 55,
         confidence,
         similarity: res.similarity,
       }
@@ -369,6 +369,15 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
             </motion.div>
           ) : (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {/* Selfie tips — full width above both columns */}
+              <div className="mb-4 bg-[#ffd93d] border-2 border-foreground px-3 py-2 text-xs font-bold flex flex-wrap gap-x-3 gap-y-1">
+                <span>Selfie tips:</span>
+                <span>Face the camera directly</span>
+                <span>· No glasses or sunglasses</span>
+                <span>· No mask or face covering</span>
+                <span>· No hat or cap</span>
+                <span>· No filters</span>
+              </div>
               <div className="grid md:grid-cols-2 gap-6 mb-8">
                 {/* Reference photo */}
                 <motion.div variants={itemVariants}>
@@ -400,14 +409,6 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
                     <p className="text-xs text-muted-foreground mt-1">
                       Look directly at the camera
                     </p>
-                  </div>
-                  {/* Selfie tips */}
-                  <div className="mb-3 bg-[#ffd93d] border-2 border-foreground px-3 py-2 text-xs font-bold flex flex-wrap gap-x-3 gap-y-1">
-                    <span>Face the camera directly</span>
-                    <span>· No glasses or sunglasses</span>
-                    <span>· No mask or face covering</span>
-                    <span>· No hat or cap</span>
-                    <span>· No filters</span>
                   </div>
                   {selfieImage ? (
                     <div>

@@ -225,8 +225,6 @@ export default function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Stats ticker at bottom */}
-      <StatsTicker />
     </section>
   )
 }
