@@ -35,7 +35,7 @@ const floatVariants = {
     y: [-8, 8, -8],
     rotate: [-2, 2, -2],
     transition: {
-      duration: 4,
+      duration: 0.15,
       repeat: Infinity,
       ease: 'easeInOut' as const,
     },
