@@ -60,28 +60,34 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
   // Helper: extract Cyrillic name value after a label.
   // Checks same line first (e.g. "Овог / БОЛД"), then next line (e.g. "Овог\nБОЛД").
   // Capture group requires uppercase Cyrillic start — rejects label words like "family name".
+  // Extract the Latin transliteration line after a label.
+  // Structure on Mongolian IDs: label line → Cyrillic line → Latin line
   function extractName(labelPattern: string): string | undefined {
-    // Try Cyrillic on same line
-    const sameLine = text.match(new RegExp(labelPattern + '[^\\n]*?([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
-    if (sameLine?.[1]) return sameLine[1].trim()
-    // Try Cyrillic on next line
-    const nextLineCyr = text.match(new RegExp(labelPattern + '[^\\n]*\\n\\s*([А-ЯӨҮЁ][А-ЯӨҮЁа-яөүё]+)', 'i'))
-    if (nextLineCyr?.[1]) return nextLineCyr[1].trim()
-    // Fallback: OCR may misread Cyrillic as Latin (e.g. АНАР → AHAP), accept uppercase Latin word
-    const nextLineLat = text.match(new RegExp(labelPattern + '[^\\n]*\\n\\s*([A-Z]{2,})', 'i'))
-    return nextLineLat?.[1]?.trim()
+    const labelRe = new RegExp(labelPattern, 'i')
+    for (let i = 0; i < lines.length; i++) {
+      if (!labelRe.test(lines[i])) continue
+      // Look at the next few lines for the Latin transliteration
+      for (let j = i + 1; j <= i + 3 && j < lines.length; j++) {
+        const line = lines[j]
+        if (!line) continue
+        // Stop if we hit another label
+        if (/(?:овог|family|эцэг|surname|нэр|given|first|хүйс|sex|gender|төрсөн|birth|иргэний|civil)/i.test(line) && j > i + 1) break
+        // Take first line that is purely Latin letters (the transliteration)
+        if (/^[A-Za-z]+$/.test(line)) return line
+      }
+      break
+    }
+    return undefined
   }
 
-  const tc = (s: string | undefined) => s ? s.split(' ').map(toTitleCase).join(' ') : undefined
-
   // Family name (овог)
-  const familyName = tc(extractName('(?:овог|family\\s*name)'))
+  const familyName = extractName('(?:овог|family\\s*name)')
 
   // Surname / father's name — handles "Эцэг/эх/-ийн нэр" and "Эцгийн нэр" variants
-  const surname = tc(extractName('(?:эцэг(?:/эх)?(?:/-ийн)?\\s*нэр|эцгийн\\s*нэр|эцгийн|surname|father\\s*name)'))
+  const surname = extractName('(?:эцэг(?:/эх)?(?:/-ийн)?\\s*нэр|эцгийн\\s*нэр|эцгийн|surname|father\\s*name)')
 
   // Given name — do NOT use standalone "нэр" as it matches "Эцэг/эх/-ийн нэр" too
-  const givenName = tc(extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)'))
+  const givenName = extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)')
 
   // Only build name from labeled fields — never guess from arbitrary capitalized lines
   const name = surname && givenName
