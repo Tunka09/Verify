@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Download, Share2, Home, AlertTriangle, Shield, Clock, User, FileText, Fingerprint, Camera } from 'lucide-react'
+import { CheckCircle, XCircle, Download, Share2, Home, AlertTriangle, Shield, Clock, Fingerprint } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import type { Easing } from 'framer-motion'
@@ -92,31 +92,6 @@ function ProgressRing({
   )
 }
 
-// Animated bar chart
-function BarChart({ data }: { data: { label: string; value: number; color: string }[] }) {
-  return (
-    <div className="space-y-4">
-      {data.map((item, i) => (
-        <div key={item.label}>
-          <div className="flex justify-between mb-2">
-            <span className="font-bold text-sm uppercase tracking-wider">{item.label}</span>
-            <span className="font-mono font-bold">{item.value > 0 ? `${item.value.toFixed(1)}%` : 'N/A'}</span>
-          </div>
-          <div className="h-6 bg-muted border-2 border-foreground overflow-hidden">
-            <motion.div
-              className="h-full"
-              style={{ backgroundColor: item.color }}
-              initial={{ width: 0 }}
-              animate={{ width: item.value > 0 ? `${item.value}%` : '0%' }}
-              transition={{ duration: 1, ease: 'easeOut', delay: 0.3 + i * 0.2 }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // Stat card component
 function StatCard({
   icon: Icon,
@@ -193,29 +168,29 @@ function Confetti({ count = 30 }: { count?: number }) {
   )
 }
 
+// Generate a short request ID
+function generateRequestId(): string {
+  const ts = Date.now().toString(36).toUpperCase()
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `VRF-${ts}-${rand}`
+}
+
 export default function VerificationSuccess({ result }: VerificationSuccessProps) {
   const isVerified = result.verified
   const confidence = result.confidence || 0
-  const [shareLabel, setShareLabel] = useState('Share Result')
-
-  const chartData = [
-    { label: 'Face Match', value: result.matchSimilarity || confidence, color: '#c6f135' },
-    { label: 'Liveness', value: result.livenessConfidence || 0, color: '#4ecdc4' },
-    { label: 'Document Auth', value: result.documentConfidence || 0, color: '#ff6b9d' },
-  ]
+  const [shareLabel, setShareLabel] = useState('Хуваалцах')
+  const [requestId] = useState(generateRequestId)
 
   const handleDownload = () => {
     const lines = [
-      'VERIFICATION CERTIFICATE',
-      '========================',
-      `Status:      ${isVerified ? 'VERIFIED' : 'REJECTED'}`,
-      `Name:        ${result.userName || 'N/A'}`,
-      `Document:    ${result.documentNumber || 'N/A'}`,
-      `Confidence:  ${confidence.toFixed(1)}%`,
-      result.livenessConfidence ? `Liveness:    ${result.livenessConfidence.toFixed(1)}%` : '',
-      result.documentConfidence ? `Doc Auth:    ${result.documentConfidence.toFixed(1)}%` : '',
-      result.elapsedTime ? `Duration:    ${result.elapsedTime}` : '',
-      `Issued:      ${new Date().toISOString()}`,
+      'БАТАЛГААЖУУЛАЛТЫН ГЭРЧИЛГЭЭ',
+      '============================',
+      `Төлөв:        ${isVerified ? 'БАТАЛГААЖСАН' : 'АМЖИЛТГҮЙ'}`,
+      `Нэр:          ${result.userName || 'N/A'}`,
+      `Хүсэлтийн ID: ${requestId}`,
+      `Итгэлцэл:     ${confidence.toFixed(1)}%`,
+      result.elapsedTime ? `Хугацаа:      ${result.elapsedTime}` : '',
+      `Огноо:        ${new Date().toISOString()}`,
     ].filter(Boolean).join('\n')
 
     const blob = new Blob([lines], { type: 'text/plain' })
@@ -228,14 +203,14 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
   }
 
   const handleShare = async () => {
-    const text = `Identity verification ${isVerified ? 'passed ✓' : 'failed ✗'} — ${confidence.toFixed(1)}% confidence. Powered by Verify.`
+    const text = `Таних баталгаажуулалт ${isVerified ? 'амжилттай ✓' : 'амжилтгүй ✗'} — ${confidence.toFixed(1)}% итгэлцэл.`
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Verify Result', text })
+        await navigator.share({ title: 'Verify үр дүн', text })
       } else {
         await navigator.clipboard.writeText(text)
-        setShareLabel('Copied!')
-        setTimeout(() => setShareLabel('Share Result'), 2000)
+        setShareLabel('Хуулагдлаа!')
+        setTimeout(() => setShareLabel('Хуваалцах'), 2000)
       }
     } catch {
       // User cancelled or clipboard unavailable — silently ignore
@@ -297,9 +272,9 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
             transition={{ delay: 0.3 }}
           >
             {isVerified ? (
-              <span className="text-[#c6f135]">VERIFIED</span>
+              <span className="text-[#c6f135]">БАТАЛГААЖСАН</span>
             ) : (
-              <span className="text-[#ff6b6b]">REJECTED</span>
+              <span className="text-[#ff6b6b]">АМЖИЛТГҮЙ</span>
             )}
           </motion.h1>
 
@@ -310,8 +285,8 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
             transition={{ delay: 0.4 }}
           >
             {isVerified
-              ? `Identity verified with ${confidence.toFixed(1)}% confidence`
-              : `Verification failed. Minimum 55% required, got ${confidence.toFixed(1)}%`
+              ? `${confidence.toFixed(1)}% итгэлцэлтэйгээр таних баталгаажлаа`
+              : `Баталгаажуулалт амжилтгүй. Хамгийн багадаа 55% шаардлагатай, ${confidence.toFixed(1)}% авсан`
             }
           </motion.p>
         </motion.div>
@@ -325,48 +300,39 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
           >
             <h3 className="text-lg font-black uppercase tracking-wider mb-6 flex items-center gap-3">
               <span className="w-8 h-8 bg-[#4ecdc4] border-2 border-foreground flex items-center justify-center">
-                <User className="w-4 h-4" />
+                <Shield className="w-4 h-4" />
               </span>
-              Identity Details
+              Таних Мэдээлэл
             </h3>
 
             <div className="space-y-4">
               <div className="pb-4 border-b-2 border-foreground/10">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Full Name</p>
-                <p className="text-xl md:text-2xl font-black">{result.userName || 'Pending'}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Бүтэн Нэр</p>
+                <p className="text-xl md:text-2xl font-black">{result.userName || 'N/A'}</p>
               </div>
 
               <div className="pb-4 border-b-2 border-foreground/10">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Document Type</p>
-                <p className="text-lg font-bold">{result.documentType || 'ID Document'}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Хүсэлтийн Дугаар</p>
+                <p className="text-sm font-mono bg-muted px-3 py-2 border-2 border-foreground">{requestId}</p>
               </div>
 
-              {result.documentNumber && (
-                <div className="pb-4 border-b-2 border-foreground/10">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Document Number</p>
-                  <p className="text-lg font-mono font-bold">{result.documentNumber}</p>
-                </div>
-              )}
-
-              {result.verificationId && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Verification ID</p>
-                  <p className="text-sm font-mono bg-muted px-3 py-2 border-2 border-foreground">{result.verificationId}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Огноо</p>
+                <p className="text-sm font-mono">{new Date().toLocaleDateString('mn-MN')}</p>
+              </div>
             </div>
           </motion.div>
 
-          {/* Right: Confidence ring + bar chart */}
+          {/* Right: Confidence ring */}
           <motion.div
             variants={itemVariants}
             className="bg-card p-6 md:p-8 border-3 border-foreground shadow-[6px_6px_0px_var(--foreground)]"
           >
             <h3 className="text-lg font-black uppercase tracking-wider mb-6 flex items-center gap-3">
               <span className="w-8 h-8 bg-[#ff6b9d] border-2 border-foreground flex items-center justify-center">
-                <Shield className="w-4 h-4" />
+                <Fingerprint className="w-4 h-4" />
               </span>
-              Confidence Score
+              Итгэлцэлийн Оноо
             </h3>
 
             <div className="flex justify-center mb-8">
@@ -376,58 +342,42 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
               />
             </div>
 
-            <div className={`inline-flex items-center gap-2 px-4 py-2 font-bold text-sm uppercase tracking-wider border-2 border-foreground mb-6 ${
+            <div className={`inline-flex items-center gap-2 px-4 py-2 font-bold text-sm uppercase tracking-wider border-2 border-foreground ${
               confidence >= 55 ? 'bg-[#c6f135]' : 'bg-[#ff6b6b] text-white'
             }`}>
               {confidence >= 55 ? (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  Passed (55%+ required)
+                  Тэнцлэа (55%+)
                 </>
               ) : (
                 <>
                   <XCircle className="w-4 h-4" />
-                  Failed (55%+ required)
+                  Тэнцсэнгүй (55%+)
                 </>
               )}
             </div>
-
-            <BarChart data={chartData} />
           </motion.div>
         </div>
 
-        {/* Stats grid */}
+        {/* Stats grid — liveness removed */}
         <motion.div
           variants={itemVariants}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-2 gap-4 mb-8"
         >
           <StatCard
-            icon={Camera}
-            label="Liveness"
-            value={result.livenessConfidence ? `${result.livenessConfidence.toFixed(1)}%` : 'N/A'}
-            color="bg-[#4ecdc4]"
+            icon={Fingerprint}
+            label="Нүүр Тааралдал"
+            value={`${(result.matchSimilarity || confidence).toFixed(1)}%`}
+            color="bg-[#c6f135]"
             delay={0.6}
           />
           <StatCard
-            icon={Fingerprint}
-            label="Face Match"
-            value={`${(result.matchSimilarity || confidence).toFixed(1)}%`}
-            color="bg-[#c6f135]"
-            delay={0.7}
-          />
-          <StatCard
-            icon={FileText}
-            label="Doc Auth"
-            value={result.documentConfidence ? `${result.documentConfidence.toFixed(1)}%` : 'N/A'}
-            color="bg-[#ff6b9d]"
-            delay={0.8}
-          />
-          <StatCard
             icon={Clock}
-            label="Time"
+            label="Хугацаа"
             value={result.elapsedTime || 'N/A'}
             color="bg-[#ffd93d]"
-            delay={0.9}
+            delay={0.7}
           />
         </motion.div>
 
@@ -441,7 +391,7 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
             className="flex-1 bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
           >
             <Download className="w-5 h-5 mr-2" />
-            Download Certificate
+            Гэрчилгээ Татах
           </Button>
           <Button
             onClick={handleShare}
@@ -457,7 +407,7 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
               className="w-full bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
             >
               <Home className="w-5 h-5 mr-2" />
-              Home
+              Нүүр хуудас
             </Button>
           </Link>
         </motion.div>
@@ -469,7 +419,7 @@ export default function VerificationSuccess({ result }: VerificationSuccessProps
             className="mt-6 inline-flex items-center gap-2 bg-[#ff6b6b] text-white px-4 py-2 border-2 border-foreground"
           >
             <AlertTriangle className="w-4 h-4" />
-            <span className="font-bold">No verification data received</span>
+            <span className="font-bold">Баталгаажуулалтын өгөгдөл ирсэнгүй</span>
           </motion.div>
         )}
       </motion.div>

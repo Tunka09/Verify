@@ -41,11 +41,13 @@ function ImageCard({
   image,
   color,
   placeholder,
+  blur = false,
 }: {
   label: string
   image?: string | null
   color: string
   placeholder?: React.ReactNode
+  blur?: boolean
 }) {
   return (
     <div>
@@ -61,11 +63,11 @@ function ImageCard({
             <img
               src={image}
               alt={label}
-              className={`w-full h-full object-cover${label === 'ID Document' ? ' blur-sm' : ''}`}
+              className={`w-full h-full object-cover${blur ? ' blur-sm' : ''}`}
             />
             <div className="absolute bottom-0 inset-x-0 bg-foreground/80 text-background py-2 px-3 flex items-center justify-center gap-2">
               <CheckCircle className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase">Ready</span>
+              <span className="text-xs font-bold uppercase">Бэлэн</span>
             </div>
           </>
         ) : (
@@ -99,10 +101,10 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
         </div>
         <div>
           <h3 className={`text-2xl font-black uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
-            {passed ? 'Match Found!' : 'No Match'}
+            {passed ? 'Тааралдлаа!' : 'Таарсангүй'}
           </h3>
           <p className={`text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
-            {passed ? 'Faces successfully matched' : 'Confidence below 55% threshold'}
+            {passed ? 'Нүүр амжилттай тааралдлаа' : '55%-ын хязгаараас доогуур'}
           </p>
         </div>
       </div>
@@ -111,7 +113,7 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
       <div className="bg-foreground/10 p-4 border-2 border-foreground mb-4">
         <div className="flex justify-between mb-2">
           <span className={`font-bold text-sm uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
-            Match Confidence
+            Тааралдлын Итгэлцэл
           </span>
           <span className={`font-mono font-black text-xl ${passed ? 'text-foreground' : 'text-white'}`}>
             {confidence.toFixed(1)}%
@@ -128,17 +130,11 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
         <div className="flex justify-between mt-2">
           <span className={`text-xs ${passed ? 'text-foreground/50' : 'text-white/50'}`}>0%</span>
           <span className={`text-xs font-bold ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
-            55% required
+            55% шаардлагатай
           </span>
           <span className={`text-xs ${passed ? 'text-foreground/50' : 'text-white/50'}`}>100%</span>
         </div>
       </div>
-
-      {result.similarity !== undefined && (
-        <div className={`mb-4 text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
-          Face Distance: <span className="font-mono font-bold">{(1 - result.similarity).toFixed(4)}</span>
-        </div>
-      )}
 
       {/* On failure: offer retake or proceed anyway */}
       {!passed && (
@@ -148,14 +144,14 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
             className="flex-1 bg-white text-[#ff6b6b] hover:bg-white/90 border-2 border-foreground font-bold uppercase"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Retake
+            Дахин авах
           </Button>
           <Button
             onClick={onProceed}
             variant="outline"
             className="flex-1 bg-transparent text-white border-2 border-white hover:bg-white/10 font-bold uppercase"
           >
-            Proceed Anyway
+            Үргэлжлүүлэх
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -170,27 +166,31 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const [error, setError] = useState<string | null>(null)
   const [matchResult, setMatchResult] = useState<FaceMatchVerifyResult | null>(null)
   const [camError, setCamError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
 
+  // Restart camera on mount and on every retry
   useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      .then((s) => {
-        streamRef.current = s
-        if (videoRef.current) videoRef.current.srcObject = s
-      })
-      .catch(() => setCamError('Camera access denied'))
-    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()) }
-  }, [])
+    let cancelled = false
+    let stream: MediaStream | null = null
 
-  // Reassign stream to video element when it re-mounts after retake
-  useEffect(() => {
-    if (!selfie && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
+        if (videoRef.current) videoRef.current.srcObject = stream
+      } catch {
+        if (!cancelled) setCamError('Камерт хандах эрх байхгүй')
+      }
     }
-  }, [selfie])
+
+    startCamera()
+    return () => {
+      cancelled = true
+      stream?.getTracks().forEach((t) => t.stop())
+    }
+  }, [retryCount])
 
   const handleCapture = () => {
     const video = videoRef.current
@@ -207,7 +207,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
   const handleMatch = async () => {
     if (!selfie) return
     if (!idImage) {
-      setError('Please upload your ID document first.')
+      setError('Эхлээд иргэний үнэмлэхээ оруулна уу.')
       return
     }
 
@@ -227,13 +227,12 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
 
       setMatchResult(result)
 
-      // Only auto-advance when confidence passes the threshold
       if ((result.confidence || 0) >= 55) {
         onComplete(selfie, result)
       }
     } catch (err) {
       console.error('Face match failed', err)
-      const message = err instanceof Error ? err.message : 'Face matching failed. Please try again.'
+      const message = err instanceof Error ? err.message : 'Нүүр тааруулалт амжилтгүй. Дахин оролдоно уу.'
       setError(message)
     } finally {
       setMatching(false)
@@ -244,6 +243,8 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
     setSelfie(null)
     setMatchResult(null)
     setError(null)
+    setCamError(null)
+    setRetryCount((c) => c + 1)
   }
 
   return (
@@ -268,26 +269,39 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
             transition={{ type: 'spring', stiffness: 200 }}
           >
             <Fingerprint className="w-4 h-4" />
-            Step 2 of 2
+            2-р алхам / 2-аас
           </motion.span>
 
           <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
-            FACE <span className="text-[#4ecdc4]">MATCH</span>
+            НҮҮР <span className="text-[#4ecdc4]">ТААРУУЛАХ</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Take a selfie to compare with your ID document photo
+            Иргэний үнэмлэхийн зурагтай харьцуулахын тулд selfie авна уу
           </p>
+        </motion.div>
+
+        {/* Warning banner */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-[#ffd93d] border-3 border-foreground px-4 py-3 text-sm font-bold flex flex-wrap gap-x-3 gap-y-1 mb-6 shadow-[3px_3px_0px_var(--foreground)]"
+        >
+          <span>Камерт шууд харна уу</span>
+          <span>· Шүлс, нүдний шил хэрэглэхгүй</span>
+          <span>· Маск, бүрхэвч зүүхгүй</span>
+          <span>· Малгай өмсөхгүй</span>
+          <span>· Filter ашиглахгүй</span>
         </motion.div>
 
         {/* Comparison grid */}
         <motion.div variants={itemVariants} className="grid md:grid-cols-2 gap-6 mb-8">
           <ImageCard
-            label="ID Document"
+            label="Иргэний Үнэмлэх"
             image={idImage}
             color="bg-[#4ecdc4]"
+            blur
             placeholder={
               <div className="text-center p-4">
-                <p className="font-bold text-foreground/50">No ID uploaded</p>
+                <p className="font-bold text-foreground/50">ID оруулаагүй</p>
               </div>
             }
           />
@@ -295,7 +309,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
           {/* Selfie: live camera or captured photo */}
           <div>
             <div className="bg-[#ff6b9d] px-3 py-1 border-3 border-foreground border-b-0 inline-block">
-              <span className="text-xs font-black uppercase tracking-wider">Your Selfie</span>
+              <span className="text-xs font-black uppercase tracking-wider">Таны Зураг</span>
             </div>
             <div
               className="relative aspect-square border-3 border-foreground bg-black overflow-hidden"
@@ -306,7 +320,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
                   <img src={selfie} alt="Selfie" className="w-full h-full object-cover" />
                   <div className="absolute bottom-0 inset-x-0 bg-foreground/80 text-background py-2 px-3 flex items-center justify-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase">Ready</span>
+                    <span className="text-xs font-bold uppercase">Бэлэн</span>
                   </div>
                 </>
               ) : camError ? (
@@ -327,7 +341,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
                     className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#ff6b9d] border-3 border-foreground px-4 py-2 font-bold text-xs uppercase tracking-wider shadow-[3px_3px_0px_var(--foreground)] hover:shadow-[5px_5px_0px_var(--foreground)] transition-all"
                   >
                     <Camera className="w-4 h-4 inline mr-1" />
-                    Take Photo
+                    Зураг Авах
                   </button>
                 </>
               )}
@@ -355,7 +369,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
                 className="flex-1 bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
               >
                 <RefreshCw className="w-5 h-5 mr-2" />
-                Retake
+                Дахин Авах
               </Button>
               <Button
                 onClick={handleMatch}
@@ -365,12 +379,12 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
                 {matching ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Matching...
+                    Тааруулж байна...
                   </>
                 ) : (
                   <>
                     <Fingerprint className="w-5 h-5 mr-2" />
-                    Compare Faces
+                    Нүүр Харьцуулах
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}
@@ -406,10 +420,10 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
           className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3"
         >
           {[
-            { label: 'Face Camera', tip: 'Look straight' },
-            { label: 'Good Light', tip: 'Avoid shadows' },
-            { label: 'Plain BG', tip: 'Clear background' },
-            { label: 'No Filter', tip: 'Natural photo' },
+            { label: 'Камерт харах', tip: 'Шууд харна уу' },
+            { label: 'Сайн Гэрэл', tip: 'Сүүдэргүй байх' },
+            { label: 'Цэвэр Дэвсгэр', tip: 'Энгийн арын дэвсгэр' },
+            { label: 'Filter Хэрэглэхгүй', tip: 'Байгалийн зураг' },
           ].map((item) => (
             <div key={item.label} className="bg-muted p-3 border-2 border-foreground text-center">
               <p className="font-bold text-xs uppercase tracking-wider">{item.label}</p>

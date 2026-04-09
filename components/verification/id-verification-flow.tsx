@@ -39,9 +39,9 @@ const itemVariants = {
 // Step indicator component
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const steps = [
-    { label: 'Upload', icon: Upload },
-    { label: 'Scan', icon: Camera },
-    { label: 'Verify', icon: CheckCircle },
+    { label: 'Оруулах', icon: Upload },
+    { label: 'Уншуулах', icon: Camera },
+    { label: 'Баталгаажуулах', icon: CheckCircle },
   ]
 
   return (
@@ -132,8 +132,8 @@ function UploadZone({
   }, [])
 
   const colors = {
-    front: { bg: 'bg-[#c6f135]', label: 'Front Side' },
-    back: { bg: 'bg-[#4ecdc4]', label: 'Back Side' },
+    front: { bg: 'bg-[#c6f135]', label: 'Урд Тал' },
+    back: { bg: 'bg-[#4ecdc4]', label: 'Арын Тал' },
   }
 
   return (
@@ -207,7 +207,7 @@ function UploadZone({
                   animate={{ opacity: 1 }}
                 >
                   <CheckCircle className="w-5 h-5 text-foreground" strokeWidth={2.5} />
-                  <span className="font-bold text-foreground">Uploaded</span>
+                  <span className="font-bold text-foreground">Оруулсан</span>
                 </motion.div>
 
                 <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ function UploadZone({
                     className="px-3 py-1 text-xs font-bold uppercase tracking-wider border-2 border-foreground bg-[#ffd93d] hover:bg-[#ffc600] transition-all duration-200 disabled:opacity-50 flex items-center gap-1"
                   >
                     <RotateCw className={`w-3 h-3 ${rotating ? 'animate-spin' : ''}`} />
-                    Rotate
+                    Эргүүлэх
                   </button>
 
                   <button
@@ -257,13 +257,13 @@ function UploadZone({
                 <Upload className="w-8 h-8" strokeWidth={2} />
               </motion.div>
               <p className="font-black text-lg mb-2 uppercase">
-                {isDragging ? 'Drop it!' : 'Upload Image'}
+                {isDragging ? 'Оруул!' : 'Зураг Оруулах'}
               </p>
               <p className="text-sm text-muted-foreground font-medium">
-                Drag & drop or click to browse
+                Чирж оруулах эсвэл дарж сонгох
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                PNG, JPG up to 10MB
+                PNG, JPG 10MB хүртэл
               </p>
             </div>
           )}
@@ -280,12 +280,12 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
     : data.name
 
   const fields = [
-    { label: 'Full Name', value: fullName },
-    { label: 'Family Name', value: data.familyName },
-    { label: 'Gender', value: data.gender },
-    { label: 'Date of Birth', value: data.dateOfBirth },
-    { label: 'Date of Issue', value: data.dateOfIssue },
-    { label: 'Date of Expiry', value: data.expiry },
+    { label: 'Бүтэн Нэр', value: fullName },
+    { label: 'Овог', value: data.familyName },
+    { label: 'Хүйс', value: data.gender },
+    { label: 'Төрсөн Огноо', value: data.dateOfBirth },
+    { label: 'Олгосон Огноо', value: data.dateOfIssue },
+    { label: 'Дуусах Огноо', value: data.expiry },
   ].filter(f => f.value)
 
   return (
@@ -297,11 +297,12 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
     >
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-[#c6f135] border-3 border-foreground flex items-center justify-center">
+
           <CheckCircle className="w-6 h-6" strokeWidth={2.5} />
         </div>
         <div>
-          <h3 className="text-xl font-black uppercase tracking-tight">Document Scanned</h3>
-          <p className="text-sm text-muted-foreground font-medium">Information extracted successfully</p>
+          <h3 className="text-xl font-black uppercase tracking-tight">Баримт Уншигдлаа</h3>
+          <p className="text-sm text-muted-foreground font-medium">Мэдээлэл амжилттай ялгаалаа</p>
         </div>
       </div>
 
@@ -327,7 +328,7 @@ function ExtractedDataCard({ data, onContinue }: { data: ExtractedDocumentData; 
         onClick={onContinue}
         className="w-full bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 text-lg transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
       >
-        Continue to Liveness Check
+        Үргэлжлүүлэх
         <ArrowRight className="w-5 h-5 ml-2" />
       </Button>
     </motion.div>
@@ -364,7 +365,7 @@ export default function IDVerificationFlow({
 
   const handleExtract = async () => {
     if (!frontImage) {
-      setError('Please upload the front side of your ID')
+      setError('Иргэний үнэмлэхийн урд талын зургийг оруулна уу')
       return
     }
 
@@ -407,7 +408,7 @@ export default function IDVerificationFlow({
       setExtractedData(combined)
     } catch (err) {
       console.error('Extraction failed', err)
-      setError('Failed to extract document data. Please try again.')
+      setError('Баримтын мэдээлэл ялгаж чадсангүй. Дахин оролдоно уу.')
     } finally {
       setScanning(false)
     }
@@ -437,10 +438,10 @@ export default function IDVerificationFlow({
           </motion.span>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter mb-4">
-            UPLOAD YOUR <span className="text-[#c6f135]">ID</span>
+            ИРГЭНИЙ <span className="text-[#c6f135]">ҮНЭМЛЭХ</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Upload clear photos of your identity document for verification
+            Баталгаажуулалтын тулд иргэний үнэмлэхийн тод зургийг оруулна уу
           </p>
         </motion.div>
 
@@ -502,12 +503,12 @@ export default function IDVerificationFlow({
                     {scanning ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Scanning Document...
+                        Баримт уншиж байна...
                       </>
                     ) : (
                       <>
                         <Camera className="w-5 h-5 mr-2" />
-                        Scan Document
+                        Баримт Уншуулах
                         <ArrowRight className="w-5 h-5 ml-2" />
                       </>
                     )}
@@ -530,9 +531,9 @@ export default function IDVerificationFlow({
           className="mt-12 grid md:grid-cols-3 gap-4"
         >
           {[
-            { title: 'Good Lighting', desc: 'Ensure clear, even lighting' },
-            { title: 'Flat Surface', desc: 'Place ID on a flat background' },
-            { title: 'Full Frame', desc: 'Capture all corners of the ID' },
+            { title: 'Сайн Гэрэлтэй', desc: 'Тод, жигд гэрэлтэй байна уу' },
+            { title: 'Тэгш Гадарга', desc: 'Тэгш дэвсгэр дээр тавина уу' },
+            { title: 'Бүтэн Зураг', desc: 'ID-ийн бүх буланг багтааж авна уу' },
           ].map((tip, i) => (
             <div 
               key={tip.title}
