@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Upload, Camera, Loader2, CheckCircle, XCircle,
-  ArrowRight, RefreshCw, X, AlertCircle, ImageIcon, ArrowLeft
+  Camera, Loader2, CheckCircle, XCircle,
+  ArrowRight, RefreshCw, X, AlertCircle, ImageIcon, ArrowLeft, Fingerprint, Shield
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -206,6 +206,42 @@ function SelfieCapture({
   )
 }
 
+// Animated confidence ring
+function ConfidenceRing({ progress }: { progress: number }) {
+  const size = 120
+  const strokeWidth = 8
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference - (progress / 100) * circumference
+  const color = progress >= 55 ? '#c6f135' : '#ff6b6b'
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg className="transform -rotate-90" width={size} height={size}>
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke="currentColor" strokeWidth={strokeWidth} fill="none" className="text-muted" />
+        <motion.circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke={color} strokeWidth={strokeWidth} fill="none" strokeLinecap="square"
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1.5, ease: 'easeOut', delay: 0.3 }}
+          style={{ strokeDasharray: circumference }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <motion.span
+          className="text-2xl font-black"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
+        >
+          {progress.toFixed(1)}%
+        </motion.span>
+      </div>
+    </div>
+  )
+}
+
 // Result card
 function ResultCard({
   result,
@@ -219,50 +255,125 @@ function ResultCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 200 }}
-      className={`border-4 border-foreground p-8 ${isMatch ? 'bg-[#c6f135]' : 'bg-[#ff6b6b]'}`}
-      style={{ boxShadow: '6px 6px 0px var(--foreground)' }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
     >
-      <div className="flex items-center gap-4 mb-6">
-        {isMatch ? (
-          <CheckCircle className="w-12 h-12" strokeWidth={2.5} />
-        ) : (
-          <XCircle className="w-12 h-12" strokeWidth={2.5} />
-        )}
-        <div>
-          <h3 className="text-2xl font-black uppercase tracking-tight">
-            {isMatch ? 'Face Matched!' : 'No Match'}
+      {/* Status header */}
+      <div className="text-center mb-8">
+        <motion.div
+          className={`inline-flex items-center justify-center w-24 h-24 md:w-32 md:h-32 ${isMatch ? 'bg-[#c6f135]' : 'bg-[#ff6b6b]'} border-4 border-foreground shadow-[6px_6px_0px_var(--foreground)] mb-6`}
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+        >
+          {isMatch
+            ? <CheckCircle className="w-12 h-12 md:w-16 md:h-16" strokeWidth={2.5} />
+            : <XCircle className="w-12 h-12 md:w-16 md:h-16 text-white" strokeWidth={2.5} />
+          }
+        </motion.div>
+
+        <motion.h2
+          className="text-4xl md:text-5xl font-black tracking-tighter mb-3"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          {isMatch
+            ? <span className="text-[#c6f135]">FACE MATCHED!</span>
+            : <span className="text-[#ff6b6b]">NO MATCH</span>
+          }
+        </motion.h2>
+
+        <motion.p
+          className="text-lg text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          {isMatch
+            ? `The faces appear to be the same person — ${confidence.toFixed(1)}% confidence`
+            : `The faces do not match. Minimum 55% required, got ${confidence.toFixed(1)}%`
+          }
+        </motion.p>
+      </div>
+
+      {/* Detail cards */}
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {/* Confidence ring */}
+        <motion.div
+          className="bg-card p-6 border-3 border-foreground shadow-[6px_6px_0px_var(--foreground)]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <h3 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span className="w-7 h-7 bg-[#ff6b9d] border-2 border-foreground flex items-center justify-center">
+              <Fingerprint className="w-4 h-4" />
+            </span>
+            Match Confidence
           </h3>
-          <p className="font-medium">
-            {isMatch ? 'The faces appear to be the same person.' : 'The faces do not match.'}
-          </p>
-        </div>
+          <div className="flex justify-center mb-4">
+            <ConfidenceRing progress={confidence} />
+          </div>
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 font-bold text-sm uppercase tracking-wider border-2 border-foreground ${confidence >= 55 ? 'bg-[#c6f135]' : 'bg-[#ff6b6b] text-white'}`}>
+            {confidence >= 55
+              ? <><CheckCircle className="w-4 h-4" /> Threshold passed (55%+)</>
+              : <><XCircle className="w-4 h-4" /> Below threshold (55%+)</>
+            }
+          </div>
+        </motion.div>
+
+        {/* Verdict */}
+        <motion.div
+          className="bg-card p-6 border-3 border-foreground shadow-[6px_6px_0px_var(--foreground)]"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <h3 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span className="w-7 h-7 bg-[#4ecdc4] border-2 border-foreground flex items-center justify-center">
+              <Shield className="w-4 h-4" />
+            </span>
+            Verdict
+          </h3>
+          <div className="space-y-4">
+            <div className="pb-3 border-b-2 border-foreground/10">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Result</p>
+              <p className={`text-xl font-black ${isMatch ? 'text-[#c6f135]' : 'text-[#ff6b6b]'}`}>
+                {isMatch ? 'SAME PERSON' : 'DIFFERENT PERSON'}
+              </p>
+            </div>
+            <div className="pb-3 border-b-2 border-foreground/10">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Face Match Score</p>
+              <div className="h-3 bg-foreground/20 border-2 border-foreground overflow-hidden mt-2">
+                <motion.div
+                  className={`h-full ${confidence >= 55 ? 'bg-[#c6f135]' : 'bg-[#ff6b6b]'}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(confidence, 100)}%` }}
+                  transition={{ duration: 1, ease: 'easeOut', delay: 0.5 }}
+                />
+              </div>
+              <p className="text-right text-sm font-mono font-bold mt-1">{confidence.toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Date</p>
+              <p className="text-sm font-mono">{new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      <div className="mb-4">
-        <div className="flex justify-between mb-2">
-          <span className="text-sm font-bold uppercase tracking-wider">Match Confidence</span>
-          <span className="font-mono font-bold">{confidence.toFixed(1)}%</span>
-        </div>
-        <div className="h-4 bg-foreground/20 border-2 border-foreground overflow-hidden">
-          <motion.div
-            className="h-full bg-foreground"
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(confidence, 100)}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-          />
-        </div>
-      </div>
-
-      <Button
-        onClick={onRetry}
-        className="w-full bg-foreground text-background hover:bg-foreground/80 border-3 border-foreground font-bold uppercase tracking-wider py-4 mt-2"
-      >
-        <RefreshCw className="w-4 h-4 mr-2" />
-        Try Again
-      </Button>
+      {/* Try again button */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <Button
+          onClick={onRetry}
+          className="w-full bg-foreground text-background hover:bg-foreground/80 border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 text-lg transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)]"
+        >
+          <RefreshCw className="w-5 h-5 mr-2" />
+          Try Again
+        </Button>
+      </motion.div>
     </motion.div>
   )
 }
@@ -374,7 +485,7 @@ export default function ImageCompareFlow({ onComplete }: ImageCompareFlowProps) 
               <ResultCard result={result} onRetry={handleRetry} />
             </motion.div>
           ) : (
-            <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key={`upload-${retryKey}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {/* Selfie tips — full width above both columns */}
               <div className="mb-4 bg-[#ffd93d] border-2 border-foreground px-3 py-2 text-xs font-bold flex flex-wrap gap-x-3 gap-y-1">
                 <span>Selfie tips:</span>
