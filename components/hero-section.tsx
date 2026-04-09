@@ -23,7 +23,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     transition: { 
-      duration: 0.6, 
+      duration: 0.15, 
       ease: [0.25, 0.46, 0.45, 0.94] as Easing
     },
   },
@@ -35,7 +35,7 @@ const floatVariants = {
     y: [-8, 8, -8],
     rotate: [-2, 2, -2],
     transition: {
-      duration: 0.15,
+      duration: 4,
       repeat: Infinity,
       ease: 'easeInOut' as const,
     },
