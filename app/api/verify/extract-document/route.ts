@@ -67,8 +67,8 @@ function parseMongolianID(rawText: string, side: 'front' | 'back') {
   // Surname / father's name (эцгийн нэр)
   const surname = extractName('(?:эцгийн\\s*нэр|эцгийн|surname|father\\s*name)')
 
-  // Given name (өөрийн нэр / нэр)
-  const givenName = extractName('(?:өөрийн\\s*нэр|given\\s*name|first\\s*name)')
+  // Given name (өөрийн нэр / нэр) — match "өөрийн нэр" or standalone "нэр" (not "эцгийн нэр")
+  const givenName = extractName('(?:өөрийн\\s*нэр|(?<!эцгийн\\s*)нэр|given\\s*name|first\\s*name)')
 
   // Only build name from labeled fields — never guess from arbitrary capitalized lines
   const name = surname && givenName
