@@ -101,10 +101,10 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
         </div>
         <div>
           <h3 className={`text-2xl font-black uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
-            {passed ? 'Тааралдлаа!' : 'Таарсангүй'}
+            {passed ? 'Таарлаа!' : 'Таарсангүй'}
           </h3>
           <p className={`text-sm ${passed ? 'text-foreground/70' : 'text-white/70'}`}>
-            {passed ? 'Нүүр амжилттай тааралдлаа' : '55%-ын хязгаараас доогуур'}
+            {passed ? 'Нүүр амжилттай таарлаа' : '55%-ын хязгаараас доогуур'}
           </p>
         </div>
       </div>
@@ -113,7 +113,7 @@ function MatchResult({ result, onRetake, onProceed }: { result: FaceMatchVerifyR
       <div className="bg-foreground/10 p-4 border-2 border-foreground mb-4">
         <div className="flex justify-between mb-2">
           <span className={`font-bold text-sm uppercase ${passed ? 'text-foreground' : 'text-white'}`}>
-            Тааралдлын Итгэлцэл
+            Тааралтын Итгэлцэл
           </span>
           <span className={`font-mono font-black text-xl ${passed ? 'text-foreground' : 'text-white'}`}>
             {confidence.toFixed(1)}%
@@ -286,7 +286,7 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
           className="bg-[#ffd93d] border-3 border-foreground px-4 py-3 text-sm font-bold flex flex-wrap gap-x-3 gap-y-1 mb-6 shadow-[3px_3px_0px_var(--foreground)]"
         >
           <span>Камерт шууд харна уу</span>
-          <span>· Шүлс, нүдний шил хэрэглэхгүй</span>
+          <span>· Нүдний шил, нарны шил зүүхгүй</span>
           <span>· Маск, бүрхэвч зүүхгүй</span>
           <span>· Малгай өмсөхгүй</span>
           <span>· Filter ашиглахгүй</span>
@@ -366,15 +366,15 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
               <Button
                 onClick={resetSelfie}
                 variant="outline"
-                className="flex-1 bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
+                className="flex-1 bg-background border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-normal whitespace-nowrap py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] hover:bg-muted"
               >
-                <RefreshCw className="w-5 h-5 mr-2" />
+                <RefreshCw className="w-5 h-5 mr-2 flex-shrink-0" />
                 Дахин Авах
               </Button>
               <Button
                 onClick={handleMatch}
                 disabled={matching}
-                className="flex-1 bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-wider py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] disabled:opacity-70"
+                className="flex-1 bg-[#c6f135] text-foreground hover:bg-[#d4f94a] border-3 border-foreground shadow-[4px_4px_0px_var(--foreground)] font-bold uppercase tracking-normal whitespace-nowrap py-6 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_var(--foreground)] disabled:opacity-70"
               >
                 {matching ? (
                   <>
@@ -383,9 +383,9 @@ export default function FaceMatch({ idImage, onComplete }: FaceMatchProps) {
                   </>
                 ) : (
                   <>
-                    <Fingerprint className="w-5 h-5 mr-2" />
+                    <Fingerprint className="w-5 h-5 mr-2 flex-shrink-0" />
                     Нүүр Харьцуулах
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    <ArrowRight className="w-5 h-5 ml-2 flex-shrink-0" />
                   </>
                 )}
               </Button>
